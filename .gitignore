@@ -11,6 +11,7 @@
 # database
 /prisma/db.sqlite
 /prisma/db.sqlite-journal
+/prisma/test.sqlite
 db.sqlite
 
 # next.js
@@ -47,3 +48,6 @@ yarn-error.log*
 
 # prisma generated
 /generated
+
+# seed sample files
+/prisma/seed-files
