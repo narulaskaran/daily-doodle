@@ -29,3 +29,24 @@ jobs:
       - run: npm test
         env:
           SKIP_ENV_VALIDATION: 1
+
+  migrate:
+    runs-on: ubuntu-latest
+    needs: build
+    # Only run migrations on pushes to main, not on PRs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Push database schema
+        run: ./node_modules/.bin/prisma db push
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
