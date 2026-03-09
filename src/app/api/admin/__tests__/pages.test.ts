@@ -82,6 +82,7 @@ describe("GET /api/admin/pages", () => {
         createdAt: new Date("2025-01-15T12:00:00Z"),
         approved: true,
         pdfUrl: "",
+        revisions: [],
       },
     ]);
 
@@ -113,7 +114,16 @@ describe("PATCH /api/admin/pages", () => {
     expect(response.status).toBe(401);
   });
 
-  it("returns 400 if id or approved is missing", async () => {
+  it("returns 400 if id is missing", async () => {
+    const req = makeRequest("PATCH", {
+      headers: { Authorization: "Bearer test-api-key" },
+      body: { approved: true },
+    });
+    const response = await PATCH(req);
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 400 if neither approved nor chooseRevisionId provided", async () => {
     const req = makeRequest("PATCH", {
       headers: { Authorization: "Bearer test-api-key" },
       body: { id: "1" },

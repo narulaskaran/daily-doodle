@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
   try {
     const pages = await db.coloringPage.findMany({
       orderBy: { createdAt: "desc" },
+      include: { revisions: { orderBy: { attempt: "asc" } } },
     });
 
     // Map to the shape the admin UI expects
@@ -40,6 +41,14 @@ export async function GET(request: NextRequest) {
       approved: p.approved,
       rejected: p.approved === false,
       pdfUrl: p.pdfUrl || undefined,
+      revisions: p.revisions.map((r) => ({
+        id: r.id,
+        attempt: r.attempt,
+        imageUrl: r.imageUrl,
+        reviewComment: r.reviewComment,
+        chosen: r.chosen,
+        createdAt: r.createdAt.toISOString(),
+      })),
     }));
 
     return NextResponse.json({ pages: mapped });
@@ -49,7 +58,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PATCH - Update page approval status
+// PATCH - Update page approval status or choose a revision
 export async function PATCH(request: NextRequest) {
   if (!authenticate(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -57,11 +66,46 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, approved } = body;
+    const { id, approved, chooseRevisionId } = body;
 
-    if (!id || approved === undefined) {
+    if (!id) {
+      return NextResponse.json({ error: "Missing required field: id" }, { status: 400 });
+    }
+
+    // Choose a revision: replace the original page's image with the revision's image
+    if (chooseRevisionId) {
+      const revision = await db.reviewRevision.findUnique({ where: { id: chooseRevisionId } });
+      if (!revision || revision.coloringPageId !== id) {
+        return NextResponse.json({ error: "Revision not found or doesn't belong to this page" }, { status: 404 });
+      }
+
+      // Update the page image and mark this revision as chosen
+      await db.$transaction([
+        db.coloringPage.update({
+          where: { id },
+          data: {
+            imageUrl: revision.imageUrl,
+            imageKey: revision.imageKey,
+            thumbnailUrl: revision.imageUrl,
+          },
+        }),
+        db.reviewRevision.updateMany({
+          where: { coloringPageId: id },
+          data: { chosen: false },
+        }),
+        db.reviewRevision.update({
+          where: { id: chooseRevisionId },
+          data: { chosen: true },
+        }),
+      ]);
+
+      return NextResponse.json({ success: true, action: "revision_chosen" });
+    }
+
+    // Standard approval update
+    if (approved === undefined) {
       return NextResponse.json(
-        { error: "Missing required fields: id, approved" },
+        { error: "Missing required field: approved or chooseRevisionId" },
         { status: 400 },
       );
     }

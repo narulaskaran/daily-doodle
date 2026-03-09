@@ -71,8 +71,44 @@ function pickRandom<T>(arr: T[], count: number): T[] {
   return shuffled.slice(0, count);
 }
 
-function generateDefaultPrompts(count: number): string[] {
-  return pickRandom(PROMPT_COMBOS, count).map(buildPrompt);
+/** Pull unused ideas from DB first, then fall back to hardcoded pool */
+async function generateDefaultPrompts(count: number): Promise<string[]> {
+  // Try to pull unused ideas from the database
+  const dbIdeas = await db.promptIdea.findMany({
+    where: { used: false },
+    take: count,
+    orderBy: { createdAt: "asc" },
+  });
+
+  const prompts: string[] = [];
+  const usedIds: string[] = [];
+
+  for (const idea of dbIdeas) {
+    prompts.push(buildPrompt({
+      animal: idea.animal,
+      action: idea.action,
+      scene: idea.scene,
+      props: idea.props,
+    }));
+    usedIds.push(idea.id);
+  }
+
+  // Mark DB ideas as used
+  if (usedIds.length > 0) {
+    await db.promptIdea.updateMany({
+      where: { id: { in: usedIds } },
+      data: { used: true },
+    });
+  }
+
+  // Fill remaining slots from hardcoded pool
+  if (prompts.length < count) {
+    const remaining = count - prompts.length;
+    const fallbackPrompts = pickRandom(PROMPT_COMBOS, remaining).map(buildPrompt);
+    prompts.push(...fallbackPrompts);
+  }
+
+  return prompts;
 }
 
 function slugify(text: string): string {
@@ -148,11 +184,11 @@ export async function POST(request: NextRequest) {
       if (body.prompts && Array.isArray(body.prompts)) {
         promptsToRun = (body.prompts as string[]).slice(0, remaining);
       } else {
-        promptsToRun = generateDefaultPrompts(remaining);
+        promptsToRun = await generateDefaultPrompts(remaining);
       }
     } catch {
       // No body, generate random defaults
-      promptsToRun = generateDefaultPrompts(remaining);
+      promptsToRun = await generateDefaultPrompts(remaining);
     }
 
     const results: { success: boolean; id?: string; filename?: string; url?: string; error?: string }[] = [];
