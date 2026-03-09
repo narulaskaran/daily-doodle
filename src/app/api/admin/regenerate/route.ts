@@ -4,8 +4,8 @@ import { acquireReplicateRateLimit } from "~/lib/replicate-ratelimit";
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
 
-// Use flux_img2img for image-guided regeneration (supports both image + text prompt)
-const IMG2IMG_MODEL = "bxclib2/flux_img2img";
+// Use lucataco/flux-img2img for image-guided regeneration (supports both image + text prompt)
+const IMG2IMG_MODEL = "lucataco/flux-img2img";
 const ATTEMPTS = 3;
 
 const replicate = new Replicate();
@@ -26,13 +26,14 @@ async function generateImg2Img(
     input: {
       image: imageUrl,
       prompt,
-      model: "schnell",
       strength: 0.65,
+      num_inference_steps: 28,
+      guidance_scale: 3.5,
       output_format: "png",
     },
   });
 
-  // flux_img2img returns a single URL string or array
+  // lucataco/flux-img2img returns a single URL string or array
   const result = Array.isArray(output) ? output[0] : output;
   if (!result) {
     throw new Error("No image output from Replicate img2img");
@@ -95,6 +96,12 @@ export async function POST(request: NextRequest) {
     const results: { attempt: number; success: boolean; id?: string; imageUrl?: string; error?: string }[] = [];
 
     for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+      // Wait between attempts to avoid hitting Replicate rate limits
+      if (attempt > 1) {
+        const delayMs = 12_000; // 12s gap respects 6 req/min limit
+        console.log(`Waiting ${delayMs / 1000}s before attempt ${attempt}...`);
+        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+      }
       console.log(`Regenerating page ${pageId} attempt ${attempt}/${ATTEMPTS}`);
 
       try {
