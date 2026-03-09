@@ -20,11 +20,16 @@ vi.mock("~/lib/uploadthing", () => ({
   }),
 }));
 
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+const mockRun = vi.fn();
+vi.mock("replicate", () => ({
+  // Must use function keyword so `new Replicate()` works
+  default: vi.fn().mockImplementation(function () {
+    return { run: mockRun };
+  }),
+}));
 
 process.env.GENERATE_API_KEY = "test-gen-key";
-process.env.OPEN_ROUTER_KEY = "test-openrouter-key";
+process.env.REPLICATE_API_TOKEN = "test-replicate-token";
 
 const { POST, GET } = await import("~/app/api/generate/route");
 
@@ -41,18 +46,9 @@ function makeRequest(opts?: { headers?: Record<string, string>; body?: unknown }
 describe("POST /api/generate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFetch.mockImplementation((url: string) => {
-      if (url.includes("openrouter.ai")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ data: [{ url: "https://example.com/img.png" }] }),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
-      });
-    });
+    // Default mock: Replicate returns a Blob image
+    const mockBlob = new Blob([new Uint8Array(8)], { type: "image/png" });
+    mockRun.mockResolvedValue([mockBlob]);
   });
 
   it("returns 401 without API key", async () => {
@@ -106,6 +102,20 @@ describe("POST /api/generate", () => {
 
     const createCall = mockCreate.mock.calls[0]![0] as { data: Record<string, unknown> };
     expect(createCall.data.prompt).toContain("coloring book");
+  });
+
+  it("returns 500 if REPLICATE_API_TOKEN is not set", async () => {
+    const origKey = process.env.REPLICATE_API_TOKEN;
+    delete process.env.REPLICATE_API_TOKEN;
+
+    const req = makeRequest({
+      headers: { GENERATE_API_KEY: "test-gen-key" },
+      body: { prompt: "test" },
+    });
+    const response = await POST(req);
+    expect(response.status).toBe(500);
+
+    process.env.REPLICATE_API_TOKEN = origKey;
   });
 });
 
