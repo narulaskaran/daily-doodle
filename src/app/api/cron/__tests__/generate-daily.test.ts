@@ -23,11 +23,15 @@ vi.mock("~/lib/uploadthing", () => ({
   listFiles: vi.fn().mockResolvedValue([]),
 }));
 
-// Mock global fetch for OpenRouter API calls
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+const mockRun = vi.fn();
+vi.mock("replicate", () => ({
+  // Must use function keyword so `new Replicate()` works
+  default: vi.fn().mockImplementation(function () {
+    return { run: mockRun };
+  }),
+}));
 
-process.env.OPEN_ROUTER_KEY = "test-openrouter-key";
+process.env.REPLICATE_API_TOKEN = "test-replicate-token";
 process.env.CRON_SECRET = "test-cron-secret";
 
 const { POST, GET } = await import("~/app/api/cron/generate-daily/route");
@@ -45,21 +49,9 @@ function makeRequest(opts?: { headers?: Record<string, string>; body?: unknown }
 describe("POST /api/cron/generate-daily", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default fetch mock for successful image generation
-    mockFetch.mockImplementation((url: string) => {
-      if (url.includes("openrouter.ai")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ data: [{ url: "https://example.com/img.png" }] }),
-          text: () => Promise.resolve(""),
-        });
-      }
-      // Image download
-      return Promise.resolve({
-        ok: true,
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
-      });
-    });
+    // Default mock: Replicate returns a Blob image
+    const mockBlob = new Blob([new Uint8Array(8)], { type: "image/png" });
+    mockRun.mockResolvedValue([mockBlob]);
   });
 
   it("returns 401 with invalid cron secret", async () => {
@@ -117,9 +109,9 @@ describe("POST /api/cron/generate-daily", () => {
     expect(createCall.data.approved).toBeNull();
   });
 
-  it("returns 500 if OPEN_ROUTER_KEY is not set", async () => {
-    const origKey = process.env.OPEN_ROUTER_KEY;
-    delete process.env.OPEN_ROUTER_KEY;
+  it("returns 500 if REPLICATE_API_TOKEN is not set", async () => {
+    const origKey = process.env.REPLICATE_API_TOKEN;
+    delete process.env.REPLICATE_API_TOKEN;
 
     mockCount.mockResolvedValue(0);
 
@@ -129,7 +121,7 @@ describe("POST /api/cron/generate-daily", () => {
     const response = await POST(req);
     expect(response.status).toBe(500);
 
-    process.env.OPEN_ROUTER_KEY = origKey;
+    process.env.REPLICATE_API_TOKEN = origKey;
   });
 });
 

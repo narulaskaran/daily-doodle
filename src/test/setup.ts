@@ -25,6 +25,6 @@ vi.mock("next/headers", () => ({
 
 // Set env vars for testing
 process.env.SKIP_ENV_VALIDATION = "1";
-process.env.DATABASE_URL = "file:./test.sqlite";
+process.env.DATABASE_URL = "postgresql://test:test@localhost/test";
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 (process.env as Record<string, string>).NODE_ENV = "test";

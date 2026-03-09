@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadImage, listFiles } from "~/lib/uploadthing";
+import Replicate from "replicate";
+import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
 
-// OpenRouter image generation - Flux Schnell
+// Replicate image generation - Flux Schnell
 const MODEL_ID = "black-forest-labs/flux-schnell";
+
+const replicate = new Replicate();
 
 // Prompts for variety in daily coloring sheets
 const DEFAULT_PROMPTS = [
@@ -22,36 +25,22 @@ function slugify(text: string): string {
 }
 
 async function generateWithFlux(prompt: string): Promise<Buffer> {
-  const response = await fetch("https://openrouter.ai/api/v1/images/generations", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.OPEN_ROUTER_KEY}`,
-      "HTTP-Referer": process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "https://daily-doodle-pi.vercel.app",
-      "X-Title": "Daily Doodle",
-    },
-    body: JSON.stringify({
-      model: MODEL_ID,
+  const output = await replicate.run(MODEL_ID, {
+    input: {
       prompt,
-      response_format: "url",
-    }),
+      num_outputs: 1,
+      output_format: "png",
+    },
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenRouter error: ${response.status} - ${error}`);
+  // Flux Schnell returns an array of FileOutput objects (implement Blob)
+  const images = output as Blob[];
+  const firstImage = images[0];
+  if (!firstImage) {
+    throw new Error("No image output from Replicate");
   }
 
-  const data = await response.json();
-
-  if (!data.data || !data.data[0]?.url) {
-    throw new Error("No image URL in response");
-  }
-
-  const imageResponse = await fetch(data.data[0].url);
-  return Buffer.from(await imageResponse.arrayBuffer());
+  return Buffer.from(await firstImage.arrayBuffer());
 }
 
 export async function POST(request: NextRequest) {
@@ -84,10 +73,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check OpenRouter API key
-    if (!process.env.OPEN_ROUTER_KEY) {
+    // Check Replicate API key
+    if (!process.env.REPLICATE_API_TOKEN) {
       return NextResponse.json(
-        { error: "OPEN_ROUTER_KEY not configured" },
+        { error: "REPLICATE_API_TOKEN not configured" },
         { status: 500 },
       );
     }
@@ -176,7 +165,7 @@ export async function GET() {
     message: "Daily Doodle Cron - POST to trigger generation",
     schedule: "0 4 * * * (4 AM UTC daily)",
     generates: "4 coloring sheets per run",
-    model: "Flux Schnell via OpenRouter",
+    model: "Flux Schnell via Replicate",
     auth: "Bearer CRON_SECRET if configured",
   });
 }
