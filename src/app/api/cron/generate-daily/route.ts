@@ -26,7 +26,7 @@ async function generateWithFlux(prompt: string): Promise<Buffer> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Authorization": `Bearer ${process.env.OPEN_ROUTER_KEY}`,
       "HTTP-Referer": process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : "https://daily-doodle-pi.vercel.app",
@@ -85,9 +85,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check OpenRouter API key
-    if (!process.env.OPENROUTER_API_KEY) {
+    if (!process.env.OPEN_ROUTER_KEY) {
       return NextResponse.json(
-        { error: "OPENROUTER_API_KEY not configured" },
+        { error: "OPEN_ROUTER_KEY not configured" },
         { status: 500 },
       );
     }

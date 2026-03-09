@@ -24,7 +24,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
 process.env.GENERATE_API_KEY = "test-gen-key";
-process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+process.env.OPEN_ROUTER_KEY = "test-openrouter-key";
 
 const { POST, GET } = await import("~/app/api/generate/route");
 

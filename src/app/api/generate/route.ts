@@ -22,7 +22,7 @@ async function generateWithFlux(prompt: string): Promise<Buffer> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Authorization": `Bearer ${process.env.OPEN_ROUTER_KEY}`,
       "HTTP-Referer": process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : "https://daily-doodle-pi.vercel.app",
@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
       "A simple, black and white line drawing of a friendly animal, suitable for a children's coloring book, single subject, white background, clean lines";
 
     // 3. Check OpenRouter API key
-    if (!process.env.OPENROUTER_API_KEY) {
+    if (!process.env.OPEN_ROUTER_KEY) {
       return NextResponse.json(
-        { error: "Server configuration error: OPENROUTER_API_KEY not set" },
+        { error: "Server configuration error: OPEN_ROUTER_KEY not set" },
         { status: 500 },
       );
     }
