@@ -50,4 +50,6 @@ jobs:
       - name: Push database schema
         run: ./node_modules/.bin/prisma db push
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Use the direct (unpooled) connection — Prisma's migration engine
+          # does not work correctly with connection poolers (e.g. PgBouncer/Neon pooler)
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
