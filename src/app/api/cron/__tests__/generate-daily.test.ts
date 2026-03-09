@@ -13,6 +13,10 @@ vi.mock("~/server/db", () => ({
   },
 }));
 
+vi.mock("~/lib/replicate-ratelimit", () => ({
+  acquireReplicateRateLimit: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("~/lib/uploadthing", () => ({
   uploadImage: vi.fn().mockResolvedValue({
     url: "https://utfs.io/f/test.png",

@@ -17,6 +17,8 @@ export const env = createEnv({
     REPLICATE_API_TOKEN: z.string().optional(),
     OPEN_ROUTER_KEY: z.string().optional(),
     GENERATE_API_KEY: z.string().optional(),
+    UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -45,6 +47,8 @@ export const env = createEnv({
     REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN,
     OPEN_ROUTER_KEY: process.env.OPEN_ROUTER_KEY,
     GENERATE_API_KEY: process.env.GENERATE_API_KEY,
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**
