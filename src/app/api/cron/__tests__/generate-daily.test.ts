@@ -27,7 +27,7 @@ vi.mock("~/lib/uploadthing", () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+process.env.OPEN_ROUTER_KEY = "test-openrouter-key";
 process.env.CRON_SECRET = "test-cron-secret";
 
 const { POST, GET } = await import("~/app/api/cron/generate-daily/route");
@@ -117,9 +117,9 @@ describe("POST /api/cron/generate-daily", () => {
     expect(createCall.data.approved).toBeNull();
   });
 
-  it("returns 500 if OPENROUTER_API_KEY is not set", async () => {
-    const origKey = process.env.OPENROUTER_API_KEY;
-    delete process.env.OPENROUTER_API_KEY;
+  it("returns 500 if OPEN_ROUTER_KEY is not set", async () => {
+    const origKey = process.env.OPEN_ROUTER_KEY;
+    delete process.env.OPEN_ROUTER_KEY;
 
     mockCount.mockResolvedValue(0);
 
@@ -129,7 +129,7 @@ describe("POST /api/cron/generate-daily", () => {
     const response = await POST(req);
     expect(response.status).toBe(500);
 
-    process.env.OPENROUTER_API_KEY = origKey;
+    process.env.OPEN_ROUTER_KEY = origKey;
   });
 });
 
