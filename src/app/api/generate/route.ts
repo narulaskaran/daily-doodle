@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const body: GenerateRequest = await request.json();
     const prompt =
       body.prompt ??
-      "A simple, black and white line drawing of a friendly animal, suitable for a children's coloring book, single subject, white background, clean lines";
+      "Black and white line art coloring page, pure white background. A kawaii, chubby animal in a cozy everyday scene. Thick, bold, uniform black outlines for the main shapes, clean simple lines for inner details. Surrounded by cute, simple props. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.";
 
     // 3. Check Replicate API key
     if (!process.env.REPLICATE_API_TOKEN) {

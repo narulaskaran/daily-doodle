@@ -9,12 +9,12 @@ const MODEL_ID = "black-forest-labs/flux-schnell";
 
 const replicate = new Replicate();
 
-// Prompts for variety in daily coloring sheets
+// Prompts for variety in daily coloring sheets (Coco Wyo-inspired kawaii style)
 const DEFAULT_PROMPTS = [
-  "A friendly dinosaur in a grassy field, simple line drawing for children's coloring book, single subject, white background, clean black lines",
-  "A cute cat sitting on a windowsill, simple line drawing for children's coloring book, single subject, white background, clean black lines",
-  "A happy teddy bear holding a balloon, simple line drawing for children's coloring book, single subject, white background, clean black lines",
-  "A smiling sun with clouds and flowers, simple line drawing for children's coloring book, single subject, white background, clean black lines",
+  "Black and white line art coloring page, pure white background. A kawaii, chubby dinosaur picking flowers in a cozy garden scene. Thick, bold, uniform black outlines for the main shapes, clean simple lines for inner details. Surrounded by cute, simple props like a watering can, potted plants, and butterflies. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.",
+  "Black and white line art coloring page, pure white background. A kawaii, chubby cat baking cookies in a cozy kitchen scene. Thick, bold, uniform black outlines for the main shapes, clean simple lines for inner details. Surrounded by cute, simple props like a mixing bowl, oven mitts, and a cookie jar. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.",
+  "Black and white line art coloring page, pure white background. A kawaii, chubby bear relaxing on a towel in a cozy sunny beach scene. Thick, bold, uniform black outlines for the main shapes, clean simple lines for inner details. Surrounded by cute, simple props like a sandcastle, a beach umbrella, and a cooler. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.",
+  "Black and white line art coloring page, pure white background. A kawaii, chubby frog watering plants in a cozy greenhouse scene. Thick, bold, uniform black outlines for the main shapes, clean simple lines for inner details. Surrounded by cute, simple props like potted plants, a watering can, and little ladybugs. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.",
 ];
 
 function slugify(text: string): string {
