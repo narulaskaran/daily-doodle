@@ -14,6 +14,7 @@ export const coloringPageRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const items = await ctx.db.coloringPage.findMany({
         take: input.limit + 1,
+        where: { approved: true },
         orderBy: { createdAt: "desc" },
         ...(input.cursor
           ? { cursor: { id: input.cursor }, skip: 1 }
@@ -32,8 +33,8 @@ export const coloringPageRouter = createTRPCRouter({
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.db.coloringPage.findUnique({
-        where: { slug: input.slug },
+      return ctx.db.coloringPage.findFirst({
+        where: { slug: input.slug, approved: true },
       });
     }),
 });

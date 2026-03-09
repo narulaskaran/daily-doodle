@@ -12,13 +12,18 @@ model ColoringPage {
     title        String
     slug         String   @unique
     description  String?
-    pdfUrl       String
-    pdfKey       String
+    prompt       String?
+    imageUrl     String?
+    imageKey     String?
+    pdfUrl       String   @default("")
+    pdfKey       String   @default("")
     thumbnailUrl String?
+    approved     Boolean?
     createdAt    DateTime @default(now())
     updatedAt    DateTime @updatedAt
 
     @@index([createdAt])
+    @@index([approved])
 }
 
 // Necessary for Next auth
