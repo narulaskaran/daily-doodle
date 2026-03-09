@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const mockCreate = vi.fn();
+const mockFindMany = vi.fn();
 
 vi.mock("~/server/db", () => ({
   db: {
     coloringPage: {
       create: (...args: unknown[]) => mockCreate(...args),
+    },
+    promptIdea: {
+      findMany: (...args: unknown[]) => mockFindMany(...args),
     },
   },
 }));
@@ -50,6 +54,8 @@ vi.stubGlobal("fetch", mockFetch);
 describe("POST /api/generate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: empty ideas bank so it uses fallback
+    mockFindMany.mockResolvedValue([]);
     // Default mock: Replicate returns FileOutput objects with a url() method
     mockRun.mockResolvedValue([{ url: () => "https://replicate.delivery/generated.png" }]);
     // Mock fetch to return fake PNG bytes
@@ -97,7 +103,10 @@ describe("POST /api/generate", () => {
     expect(createCall.data.prompt).toBe("A happy elephant, line drawing");
   });
 
-  it("uses default prompt when none provided", async () => {
+  it("uses ideas bank for prompt when none provided", async () => {
+    mockFindMany.mockResolvedValue([
+      { animal: "chicken", action: "piloting an airplane", scene: "cloud", props: "pilot hat, walkie talkie, peanuts" },
+    ]);
     mockCreate.mockResolvedValue({
       id: "default-page",
       createdAt: new Date("2025-01-15T12:00:00Z"),
@@ -110,7 +119,27 @@ describe("POST /api/generate", () => {
     await POST(req);
 
     const createCall = mockCreate.mock.calls[0]![0] as { data: Record<string, unknown> };
-    expect(createCall.data.prompt).toContain("coloring book");
+    const prompt = createCall.data.prompt as string;
+    expect(prompt).toContain("chicken");
+    expect(prompt).toContain("coloring book illustration");
+  });
+
+  it("falls back to hardcoded components when ideas bank is empty", async () => {
+    mockFindMany.mockResolvedValue([]);
+    mockCreate.mockResolvedValue({
+      id: "fallback-page",
+      createdAt: new Date("2025-01-15T12:00:00Z"),
+    });
+
+    const req = makeRequest({
+      headers: { GENERATE_API_KEY: "test-gen-key" },
+      body: {},
+    });
+    await POST(req);
+
+    const createCall = mockCreate.mock.calls[0]![0] as { data: Record<string, unknown> };
+    const prompt = createCall.data.prompt as string;
+    expect(prompt).toContain("coloring book illustration");
   });
 
   it("returns 500 if REPLICATE_API_TOKEN is not set", async () => {

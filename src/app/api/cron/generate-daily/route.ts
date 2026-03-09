@@ -71,40 +71,37 @@ function pickRandom<T>(arr: T[], count: number): T[] {
   return shuffled.slice(0, count);
 }
 
-/** Pull unused ideas from DB first, then fall back to hardcoded pool */
+/** Build prompts by mixing and matching components from ideas bank, then fall back to hardcoded pool */
 async function generateDefaultPrompts(count: number): Promise<string[]> {
-  // Try to pull unused ideas from the database
-  const dbIdeas = await db.promptIdea.findMany({
-    where: { used: false },
-    take: count,
-    orderBy: { createdAt: "asc" },
+  // Fetch all ideas to build a component pool for mix-and-match
+  const allIdeas = await db.promptIdea.findMany({
+    select: { id: true, animal: true, action: true, scene: true, props: true, used: true },
   });
 
   const prompts: string[] = [];
-  const usedIds: string[] = [];
 
-  for (const idea of dbIdeas) {
-    prompts.push(buildPrompt({
-      animal: idea.animal,
-      action: idea.action,
-      scene: idea.scene,
-      props: idea.props,
-    }));
-    usedIds.push(idea.id);
-  }
+  if (allIdeas.length > 0) {
+    // Mix and match: pick each component independently from different ideas
+    for (let i = 0; i < count; i++) {
+      const animal = pickRandom(allIdeas, 1)[0]!.animal;
+      const action = pickRandom(allIdeas, 1)[0]!.action;
+      const scene = pickRandom(allIdeas, 1)[0]!.scene;
+      const props = pickRandom(allIdeas, 1)[0]!.props;
 
-  // Mark DB ideas as used
-  if (usedIds.length > 0) {
-    await db.promptIdea.updateMany({
-      where: { id: { in: usedIds } },
-      data: { used: true },
-    });
-  }
+      prompts.push(buildPrompt({ animal, action, scene, props }));
+    }
 
-  // Fill remaining slots from hardcoded pool
-  if (prompts.length < count) {
-    const remaining = count - prompts.length;
-    const fallbackPrompts = pickRandom(PROMPT_COMBOS, remaining).map(buildPrompt);
+    // Mark all unused ideas as used since their components have been drawn from
+    const unusedIds = allIdeas.filter((i) => !i.used).map((i) => i.id);
+    if (unusedIds.length > 0) {
+      await db.promptIdea.updateMany({
+        where: { id: { in: unusedIds } },
+        data: { used: true },
+      });
+    }
+  } else {
+    // No ideas in bank, fall back to hardcoded combos
+    const fallbackPrompts = pickRandom(PROMPT_COMBOS, count).map(buildPrompt);
     prompts.push(...fallbackPrompts);
   }
 

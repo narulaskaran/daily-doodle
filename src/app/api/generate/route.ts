@@ -8,6 +8,48 @@ const MODEL_ID = "black-forest-labs/flux-schnell";
 
 const replicate = new Replicate();
 
+const PROMPT_TEMPLATE =
+  "Black and white line art coloring page, pure white background. A kawaii, chubby [ANIMAL] [ACTION] in a cozy [SCENE]. Thick, bold, uniform black outlines for the main shapes, clean simple lines for inner details. Surrounded by cute, simple props like [PROPS]. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.";
+
+// Fallback components when the ideas bank is empty
+const FALLBACK_ANIMALS = ["bear", "cat", "frog", "bunny", "penguin", "fox", "owl", "raccoon", "hedgehog", "duck", "mouse", "panda", "otter", "turtle", "koala"];
+const FALLBACK_ACTIONS = ["relaxing on a towel", "baking cookies", "watering plants", "reading a book", "sipping hot cocoa", "painting on a canvas", "picking apples", "decorating a cake", "doing yoga", "having a picnic"];
+const FALLBACK_SCENES = ["sunny beach", "kitchen", "greenhouse", "library nook", "snowy cabin", "art studio", "orchard", "bakery", "bamboo garden", "sunny meadow"];
+const FALLBACK_PROPS = ["a sandcastle, a beach umbrella, and a cooler", "a mixing bowl, oven mitts, and a cookie jar", "potted plants, a watering can, and little ladybugs", "stacked books, a reading lamp, and a warm blanket", "a steaming mug, marshmallows, and a cozy fireplace", "paint brushes, a palette, and jars of paint"];
+
+function pickOne<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]!;
+}
+
+/** Build a prompt by mixing and matching components from the ideas bank */
+async function buildPromptFromIdeasBank(): Promise<string> {
+  // Fetch all ideas (both used and unused) to build a component pool
+  const allIdeas = await db.promptIdea.findMany({
+    select: { animal: true, action: true, scene: true, props: true },
+  });
+
+  if (allIdeas.length === 0) {
+    // No ideas in the bank, fall back to hardcoded components
+    return PROMPT_TEMPLATE
+      .replace("[ANIMAL]", pickOne(FALLBACK_ANIMALS))
+      .replace("[ACTION]", pickOne(FALLBACK_ACTIONS))
+      .replace("[SCENE]", pickOne(FALLBACK_SCENES))
+      .replace("[PROPS]", pickOne(FALLBACK_PROPS));
+  }
+
+  // Mix and match: pick each component independently from different ideas
+  const animal = pickOne(allIdeas).animal;
+  const action = pickOne(allIdeas).action;
+  const scene = pickOne(allIdeas).scene;
+  const props = pickOne(allIdeas).props;
+
+  return PROMPT_TEMPLATE
+    .replace("[ANIMAL]", animal)
+    .replace("[ACTION]", action)
+    .replace("[SCENE]", scene)
+    .replace("[PROPS]", props);
+}
+
 interface GenerateRequest {
   prompt?: string;
 }
@@ -60,9 +102,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse request body
     const body: GenerateRequest = await request.json();
-    const prompt =
-      body.prompt ??
-      "Black and white line art coloring page, pure white background. A kawaii, chubby animal in a cozy everyday scene. Thick, bold, uniform black outlines for the main shapes, clean simple lines for inner details. Surrounded by cute, simple props. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.";
+    const prompt = body.prompt ?? (await buildPromptFromIdeasBank());
 
     // 3. Check Replicate API key
     if (!process.env.REPLICATE_API_TOKEN) {
