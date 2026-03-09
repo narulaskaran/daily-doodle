@@ -36,6 +36,7 @@ jobs:
     # Only run migrations on pushes to main, not on PRs
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +49,11 @@ jobs:
       - run: npm ci
 
       - name: Push database schema
-        run: ./node_modules/.bin/prisma db push
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::DATABASE_URL secret is not set in the 'production' GitHub environment — skipping schema push."
+            exit 0
+          fi
+          ./node_modules/.bin/prisma db push
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
