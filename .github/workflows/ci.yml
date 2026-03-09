@@ -36,7 +36,6 @@ jobs:
     # Only run migrations on pushes to main, not on PRs
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
@@ -49,11 +48,8 @@ jobs:
       - run: npm ci
 
       - name: Push database schema
-        run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "::warning::DATABASE_URL secret is not set in the 'production' GitHub environment — skipping schema push."
-            exit 0
-          fi
-          ./node_modules/.bin/prisma db push
+        run: ./node_modules/.bin/prisma db push
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Use the direct (unpooled) connection — Prisma's migration engine
+          # does not work correctly with connection poolers (e.g. PgBouncer/Neon pooler)
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
