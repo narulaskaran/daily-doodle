@@ -43,12 +43,21 @@ function makeRequest(opts?: { headers?: Record<string, string>; body?: unknown }
   return new NextRequest("http://localhost:3000/api/generate", init);
 }
 
+// Mock global fetch used to download the generated image URL
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
 describe("POST /api/generate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default mock: Replicate returns a Blob image
-    const mockBlob = new Blob([new Uint8Array(8)], { type: "image/png" });
-    mockRun.mockResolvedValue([mockBlob]);
+    // Default mock: Replicate returns FileOutput objects with a url() method
+    mockRun.mockResolvedValue([{ url: () => "https://replicate.delivery/generated.png" }]);
+    // Mock fetch to return fake PNG bytes
+    mockFetch.mockResolvedValue({
+      ok: true,
+      statusText: "OK",
+      arrayBuffer: () => Promise.resolve(new Uint8Array(8).buffer),
+    });
   });
 
   it("returns 401 without API key", async () => {

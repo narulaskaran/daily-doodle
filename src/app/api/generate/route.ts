@@ -29,14 +29,20 @@ async function generateWithFlux(prompt: string): Promise<Buffer> {
     },
   });
 
-  // Flux Schnell returns an array of FileOutput objects (implement Blob)
-  const images = output as Blob[];
+  // Flux Schnell returns an array of FileOutput objects (extend ReadableStream)
+  const images = output as Array<{ url: () => string }>;
   const firstImage = images[0];
   if (!firstImage) {
     throw new Error("No image output from Replicate");
   }
 
-  return Buffer.from(await firstImage.arrayBuffer());
+  // FileOutput.url() returns the URL string; fetch it to get the raw bytes
+  const imageUrl = firstImage.url();
+  const response = await fetch(imageUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch generated image: ${response.statusText}`);
+  }
+  return Buffer.from(await response.arrayBuffer());
 }
 
 export async function POST(request: NextRequest) {
