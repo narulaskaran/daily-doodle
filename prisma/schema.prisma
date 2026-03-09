@@ -8,22 +8,49 @@ datasource db {
 }
 
 model ColoringPage {
-    id           String   @id @default(cuid())
+    id           String            @id @default(cuid())
     title        String
-    slug         String   @unique
+    slug         String            @unique
     description  String?
     prompt       String?
     imageUrl     String?
     imageKey     String?
-    pdfUrl       String   @default("")
-    pdfKey       String   @default("")
+    pdfUrl       String            @default("")
+    pdfKey       String            @default("")
     thumbnailUrl String?
     approved     Boolean?
-    createdAt    DateTime @default(now())
-    updatedAt    DateTime @updatedAt
+    createdAt    DateTime          @default(now())
+    updatedAt    DateTime          @updatedAt
+    revisions    ReviewRevision[]
 
     @@index([createdAt])
     @@index([approved])
+}
+
+model ReviewRevision {
+    id             String       @id @default(cuid())
+    coloringPageId String
+    coloringPage   ColoringPage @relation(fields: [coloringPageId], references: [id], onDelete: Cascade)
+    reviewComment  String
+    attempt        Int
+    imageUrl       String
+    imageKey       String
+    chosen         Boolean      @default(false)
+    createdAt      DateTime     @default(now())
+
+    @@index([coloringPageId])
+}
+
+model PromptIdea {
+    id        String   @id @default(cuid())
+    animal    String
+    action    String
+    scene     String
+    props     String
+    used      Boolean  @default(false)
+    createdAt DateTime @default(now())
+
+    @@index([used])
 }
 
 // Necessary for Next auth
