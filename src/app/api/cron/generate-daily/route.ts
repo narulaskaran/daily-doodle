@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Replicate from "replicate";
+import { acquireReplicateRateLimit } from "~/lib/replicate-ratelimit";
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
 
@@ -103,6 +104,7 @@ export async function POST(request: NextRequest) {
       console.log(`Generating image ${seqNum}/4:`, prompt.substring(0, 50) + "...");
 
       try {
+        await acquireReplicateRateLimit();
         const imageBuffer = await generateWithFlux(prompt);
         const filename = `${today}_0${seqNum}.png`;
 
@@ -137,10 +139,6 @@ export async function POST(request: NextRequest) {
         results.push({ success: false, error: err instanceof Error ? err.message : "Unknown" });
       }
 
-      // Rate limit between generations
-      if (i < promptsToRun.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      }
     }
 
     const successCount = results.filter((r) => r.success).length;
