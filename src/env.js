@@ -7,12 +7,16 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    // TODO: make these required once auth and database are configured
+    // TODO: make these required once auth is configured
     AUTH_SECRET: z.string().optional(),
     AUTH_DISCORD_ID: z.string().optional(),
     AUTH_DISCORD_SECRET: z.string().optional(),
     DATABASE_URL: z.string().url().optional(),
+    DATABASE_URL_UNPOOLED: z.string().url().optional(),
     UPLOADTHING_TOKEN: z.string().optional(),
+    REPLICATE_API_TOKEN: z.string().optional(),
+    OPEN_ROUTER_KEY: z.string().optional(),
+    GENERATE_API_KEY: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -36,7 +40,11 @@ export const env = createEnv({
     AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_URL_UNPOOLED: process.env.DATABASE_URL_UNPOOLED,
     UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
+    REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN,
+    OPEN_ROUTER_KEY: process.env.OPEN_ROUTER_KEY,
+    GENERATE_API_KEY: process.env.GENERATE_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**
