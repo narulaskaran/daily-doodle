@@ -4,11 +4,17 @@ import { NextRequest } from "next/server";
 const mockCount = vi.fn();
 const mockCreate = vi.fn();
 
+const mockFindMany = vi.fn();
+
 vi.mock("~/server/db", () => ({
   db: {
     coloringPage: {
       count: (...args: unknown[]) => mockCount(...args),
       create: (...args: unknown[]) => mockCreate(...args),
+    },
+    promptIdea: {
+      findMany: (...args: unknown[]) => mockFindMany(...args),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
   },
 }));
@@ -56,6 +62,8 @@ describe("POST /api/cron/generate-daily", () => {
     // Default mock: Replicate returns a Blob image
     const mockBlob = new Blob([new Uint8Array(8)], { type: "image/png" });
     mockRun.mockResolvedValue([mockBlob]);
+    // Default: no prompt ideas in DB, so fallback to hardcoded combos
+    mockFindMany.mockResolvedValue([]);
   });
 
   it("returns 401 with invalid cron secret", async () => {
@@ -130,11 +138,35 @@ describe("POST /api/cron/generate-daily", () => {
 });
 
 describe("GET /api/cron/generate-daily", () => {
-  it("returns API info", async () => {
-    const response = await GET();
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const mockBlob = new Blob([new Uint8Array(8)], { type: "image/png" });
+    mockRun.mockResolvedValue([mockBlob]);
+  });
+
+  it("returns 401 with invalid cron secret", async () => {
+    const req = new NextRequest("http://localhost:3000/api/cron/generate-daily", {
+      method: "GET",
+      headers: { Authorization: "Bearer wrong-secret" },
+    });
+    const response = await GET(req);
+    expect(response.status).toBe(401);
+  });
+
+  it("triggers generation via GET (Vercel cron uses GET)", async () => {
+    mockCount.mockResolvedValue(0);
+    mockCreate.mockImplementation(({ data }: { data: { title: string; slug: string } }) =>
+      Promise.resolve({ id: `gen-${data.slug}`, ...data, createdAt: new Date() }),
+    );
+
+    const req = new NextRequest("http://localhost:3000/api/cron/generate-daily", {
+      method: "GET",
+      headers: { Authorization: "Bearer test-cron-secret" },
+    });
+    const response = await GET(req);
     const data = await response.json();
 
-    expect(data.message).toContain("Daily Doodle Cron");
-    expect(data.model).toContain("Flux Schnell");
+    expect(data.generated).toBeGreaterThanOrEqual(1);
+    expect(mockCreate).toHaveBeenCalled();
   });
 });
