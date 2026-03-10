@@ -37,20 +37,22 @@ export default async function ColoringPageDetail({ params }: Props) {
         <p className="mb-6 text-muted-foreground">{page.description}</p>
       )}
 
-      {page.thumbnailUrl && (
+      {page.previewUrl && (
         <img
-          src={page.thumbnailUrl}
+          src={page.previewUrl}
           alt={page.title}
           className="mb-6 w-full max-w-md rounded-lg border"
         />
       )}
 
-      <a href={page.pdfUrl} target="_blank" rel="noopener noreferrer">
-        <Button className="gap-2">
-          <Download className="h-4 w-4" />
-          Download PDF
-        </Button>
-      </a>
+      {page.downloadUrl && (
+        <a href={page.downloadUrl} target="_blank" rel="noopener noreferrer">
+          <Button className="gap-2">
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Button>
+        </a>
+      )}
     </main>
   );
 }
