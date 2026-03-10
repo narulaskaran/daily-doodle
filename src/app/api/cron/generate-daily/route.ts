@@ -125,14 +125,29 @@ async function generateWithFlux(prompt: string): Promise<Buffer> {
     },
   });
 
-  // Flux Schnell returns an array of FileOutput objects (implement Blob)
-  const images = output as Blob[];
+  // Flux Schnell returns an array of FileOutput objects (ReadableStream with .blob() method)
+  const images = output as unknown[];
   const firstImage = images[0];
   if (!firstImage) {
     throw new Error("No image output from Replicate");
   }
 
-  return Buffer.from(await firstImage.arrayBuffer());
+  // FileOutput extends ReadableStream and has a .blob() method.
+  // Convert to a Blob first, then to an ArrayBuffer.
+  let blob: Blob;
+  if (firstImage instanceof Blob) {
+    blob = firstImage;
+  } else if (typeof (firstImage as { blob?: unknown }).blob === "function") {
+    blob = await (firstImage as { blob(): Promise<Blob> }).blob();
+  } else if (typeof firstImage === "string") {
+    // Fallback: URL string — fetch the image
+    const resp = await fetch(firstImage);
+    blob = await resp.blob();
+  } else {
+    throw new Error(`Unexpected Replicate output type: ${typeof firstImage}`);
+  }
+
+  return Buffer.from(await blob.arrayBuffer());
 }
 
 async function handleGeneration(request: NextRequest) {
