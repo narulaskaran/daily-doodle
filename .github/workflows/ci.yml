@@ -47,20 +47,29 @@ jobs:
 
       - run: npm ci
 
-      - name: Resolve previously failed migrations
-        run: |
-          # Query _prisma_migrations for any migrations stuck in "failed" state
-          # and mark them as applied so migrate deploy can proceed.
-          FAILED=$(npx prisma migrate status 2>&1 | grep -oP '`\K[^`]+(?=`.*failed)' || true)
-          for name in $FAILED; do
-            echo "Resolving failed migration: $name"
-            npx prisma migrate resolve --applied "$name"
-          done
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
-
       - name: Deploy database migrations
-        run: ./node_modules/.bin/prisma migrate deploy
+        run: |
+          # Attempt migrate deploy. If it fails with P3009 (failed migration),
+          # resolve the failed migration and retry.
+          set +e
+          OUTPUT=$(./node_modules/.bin/prisma migrate deploy 2>&1)
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -ne 0 ] && echo "$OUTPUT" | grep -q "P3009"; then
+            # Extract the failed migration name (e.g. "20260309010000_add_review_revisions_and_prompt_ideas")
+            FAILED_NAME=$(echo "$OUTPUT" | grep -oE '[0-9]{14}_[a-zA-Z_]+' | head -1)
+            if [ -n "$FAILED_NAME" ]; then
+              echo "Resolving failed migration: $FAILED_NAME"
+              npx prisma migrate resolve --applied "$FAILED_NAME"
+              echo "Retrying migrate deploy..."
+              ./node_modules/.bin/prisma migrate deploy
+            else
+              echo "Could not extract failed migration name"
+              exit 1
+            fi
+          elif [ $EXIT_CODE -ne 0 ]; then
+            exit $EXIT_CODE
+          fi
         env:
           # Use the direct (unpooled) connection — Prisma's migration engine
           # does not work correctly with connection poolers (e.g. PgBouncer/Neon pooler)
