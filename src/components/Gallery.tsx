@@ -26,7 +26,7 @@ export default function Gallery() {
   }, []);
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareText = 'Check out these free printable coloring pages from Daily Doodle! 🎨';
+  const shareText = 'Check out these printable coloring pages from Daily Doodle! 🎨';
 
   const shareToTwitter = () => {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
@@ -37,7 +37,7 @@ export default function Gallery() {
   };
 
   const shareToReddit = () => {
-    window.open(`https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent('Daily Doodle - Free Printable Coloring Pages')}`, '_blank');
+    window.open(`https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent('Daily Doodle - Printable Coloring Pages')}`, '_blank');
   };
 
   if (loading) {

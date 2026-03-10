@@ -11,7 +11,7 @@ export default function Home() {
               <span className="text-4xl">🎨</span>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Daily Doodle</h1>
-                <p className="text-sm text-gray-500">Free printable coloring pages</p>
+                <p className="text-sm text-gray-500">Printable coloring pages</p>
               </div>
             </div>
             <a

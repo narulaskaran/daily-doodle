@@ -15,26 +15,26 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://daily-doodle.vercel.app"),
-  title: "Daily Doodle | Free Printable Coloring Pages",
-  description: "Get fresh, free printable coloring pages every day. Download beautiful Coco Wyo-style coloring sheets for adults and kids. No signup required.",
-  keywords: ["coloring pages", "printable", "free", "daily", "coloring sheets", "Coco Wyo", "adult coloring", "kids coloring"],
+  title: "Daily Doodle | Printable Coloring Pages",
+  description: "Get fresh printable coloring pages every day. Download beautiful Coco Wyo-style coloring sheets for adults and kids. No signup required.",
+  keywords: ["coloring pages", "printable", "daily", "coloring sheets", "Coco Wyo", "adult coloring", "kids coloring"],
   authors: [{ name: "Daily Doodle" }],
   openGraph: {
-    title: "Daily Doodle | Free Printable Coloring Pages",
-    description: "Fresh coloring pages delivered daily. Download beautiful printable sheets for free.",
+    title: "Daily Doodle | Printable Coloring Pages",
+    description: "Fresh coloring pages delivered daily. Download beautiful printable sheets.",
     type: "website",
     locale: "en_US",
     images: [{
       url: "/og-image.png",
       width: 1200,
       height: 630,
-      alt: "Daily Doodle - Free Printable Coloring Pages"
+      alt: "Daily Doodle - Printable Coloring Pages"
     }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Daily Doodle | Free Printable Coloring Pages",
-    description: "Fresh coloring pages delivered daily. Download beautiful printable sheets for free.",
+    title: "Daily Doodle | Printable Coloring Pages",
+    description: "Fresh coloring pages delivered daily. Download beautiful printable sheets.",
     images: ["/og-image.png"],
   },
   alternates: {
