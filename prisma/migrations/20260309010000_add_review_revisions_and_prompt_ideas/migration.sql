@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "ReviewRevision" (
+CREATE TABLE IF NOT EXISTS "ReviewRevision" (
     "id" TEXT NOT NULL,
     "coloringPageId" TEXT NOT NULL,
     "reviewComment" TEXT NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE "ReviewRevision" (
 );
 
 -- CreateTable
-CREATE TABLE "PromptIdea" (
+CREATE TABLE IF NOT EXISTS "PromptIdea" (
     "id" TEXT NOT NULL,
     "animal" TEXT NOT NULL,
     "action" TEXT NOT NULL,
@@ -26,10 +26,17 @@ CREATE TABLE "PromptIdea" (
 );
 
 -- CreateIndex
-CREATE INDEX "ReviewRevision_coloringPageId_idx" ON "ReviewRevision"("coloringPageId");
+CREATE INDEX IF NOT EXISTS "ReviewRevision_coloringPageId_idx" ON "ReviewRevision"("coloringPageId");
 
 -- CreateIndex
-CREATE INDEX "PromptIdea_used_idx" ON "PromptIdea"("used");
+CREATE INDEX IF NOT EXISTS "PromptIdea_used_idx" ON "PromptIdea"("used");
 
 -- AddForeignKey
-ALTER TABLE "ReviewRevision" ADD CONSTRAINT "ReviewRevision_coloringPageId_fkey" FOREIGN KEY ("coloringPageId") REFERENCES "ColoringPage"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'ReviewRevision_coloringPageId_fkey'
+    ) THEN
+        ALTER TABLE "ReviewRevision" ADD CONSTRAINT "ReviewRevision_coloringPageId_fkey" FOREIGN KEY ("coloringPageId") REFERENCES "ColoringPage"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
