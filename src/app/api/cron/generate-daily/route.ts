@@ -9,7 +9,7 @@ const MODEL_ID = "black-forest-labs/flux-schnell";
 
 const replicate = new Replicate();
 
-// Composable prompt pieces for daily variety (Coco Wyo-inspired kawaii style)
+// Composable prompt pieces for daily variety (kawaii style)
 const PROMPT_TEMPLATE =
   "Black and white line art coloring page, pure white background. A kawaii, chubby [ANIMAL] [ACTION] in a cozy [SCENE]. Thick, bold, uniform black outlines for the main shapes, clean simple lines for inner details. Surrounded by cute, simple props like [PROPS]. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.";
 

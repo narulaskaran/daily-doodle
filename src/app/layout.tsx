@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://daily-doodle.vercel.app"),
   title: "Daily Doodle | Printable Coloring Pages",
-  description: "Get fresh printable coloring pages every day. Download beautiful Coco Wyo-style coloring sheets for adults and kids. No signup required.",
-  keywords: ["coloring pages", "printable", "daily", "coloring sheets", "Coco Wyo", "adult coloring", "kids coloring"],
+  description: "Get fresh printable coloring pages every day. Download beautiful coloring sheets for adults and kids. No signup required.",
+  keywords: ["coloring pages", "printable", "daily", "coloring sheets", "adult coloring", "kids coloring"],
   authors: [{ name: "Daily Doodle" }],
   openGraph: {
     title: "Daily Doodle | Printable Coloring Pages",
