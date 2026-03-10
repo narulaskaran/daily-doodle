@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { db } from "~/server/db";
+import { getSignedFileUrl } from "~/lib/uploadthing";
 
 const PREVIEW_WIDTH = 600;
 const WATERMARK_TEXT = "Daily Doodle - Preview";
@@ -35,15 +36,18 @@ export async function GET(request: NextRequest) {
   try {
     const page = await db.coloringPage.findFirst({
       where: { id, approved: true },
-      select: { imageUrl: true },
+      select: { imageKey: true, imageUrl: true },
     });
 
     if (!page?.imageUrl) {
       return NextResponse.json({ error: "Page not found" }, { status: 404 });
     }
 
-    // Fetch the original image
-    const imageResponse = await fetch(page.imageUrl);
+    // Fetch via signed URL if we have a file key, otherwise fall back to stored URL
+    const fetchUrl = page.imageKey
+      ? await getSignedFileUrl(page.imageKey, 60)
+      : page.imageUrl;
+    const imageResponse = await fetch(fetchUrl);
     if (!imageResponse.ok) {
       return NextResponse.json({ error: "Failed to fetch image" }, { status: 502 });
     }

@@ -67,6 +67,18 @@ export async function uploadPdf(
   };
 }
 
+// Generate a short-lived signed URL for a private file (no API call, local only)
+export async function getSignedFileUrl(
+  fileKey: string,
+  expiresIn: number = 300, // 5 minutes default
+): Promise<string> {
+  const utapi = getUtapi();
+  const result = await utapi.generateSignedURL(fileKey, {
+    expiresIn,
+  });
+  return result.ufsUrl;
+}
+
 export async function deleteFile(fileKey: string): Promise<void> {
   const utapi = getUtapi();
   await utapi.deleteFiles([fileKey]);

@@ -43,9 +43,9 @@ export function GalleryGrid() {
       {pages.map((page) => (
         <Link key={page.id} href={`/pages/${page.slug}`}>
           <Card className="overflow-hidden transition-shadow hover:shadow-lg">
-            {page.imageUrl ? (
+            {page.previewUrl ? (
               <img
-                src={`/api/preview?id=${page.id}`}
+                src={page.previewUrl}
                 alt={page.title}
                 className="aspect-[8.5/11] w-full object-cover"
                 loading="lazy"

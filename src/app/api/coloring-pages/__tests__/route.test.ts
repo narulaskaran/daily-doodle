@@ -17,7 +17,7 @@ describe("GET /api/coloring-pages", () => {
     vi.clearAllMocks();
   });
 
-  it("returns approved pages mapped to expected shape", async () => {
+  it("returns approved pages with proxy URLs instead of raw URLs", async () => {
     mockFindMany.mockResolvedValue([
       {
         id: "page-1",
@@ -40,9 +40,12 @@ describe("GET /api/coloring-pages", () => {
       slug: "cute-cat",
       title: "Cute Cat",
       previewUrl: "/api/preview?id=page-1",
-      pdfUrl: null,
+      downloadUrl: null,
       createdAt: "2025-01-15T12:00:00.000Z",
     });
+    // Raw URLs should not be exposed
+    expect(data[0].imageUrl).toBeUndefined();
+    expect(data[0].pdfUrl).toBeUndefined();
   });
 
   it("only queries approved pages ordered by createdAt desc", async () => {
@@ -65,7 +68,7 @@ describe("GET /api/coloring-pages", () => {
     expect(data).toEqual([]);
   });
 
-  it("returns pdfUrl when available", async () => {
+  it("returns download URL when pdfKey is available", async () => {
     mockFindMany.mockResolvedValue([
       {
         id: "page-2",
@@ -82,7 +85,9 @@ describe("GET /api/coloring-pages", () => {
     const response = await GET();
     const data = await response.json();
 
-    expect(data[0].pdfUrl).toBe("https://example.com/page.pdf");
+    expect(data[0].downloadUrl).toBe("/api/download?id=page-2&type=pdf");
     expect(data[0].previewUrl).toBe("/api/preview?id=page-2");
+    // Raw URLs should not be exposed
+    expect(data[0].pdfUrl).toBeUndefined();
   });
 });

@@ -32,16 +32,11 @@ const makePages = (count: number, overrides: Record<string, unknown> = {}) =>
     id: `page-${i}`,
     title: `Page ${i}`,
     slug: `page-${i}`,
-    approved: true,
+    description: null,
+    imageUrl: null,
+    pdfKey: "",
     createdAt: new Date(Date.now() - i * 1000),
     updatedAt: new Date(),
-    description: null,
-    prompt: null,
-    imageUrl: null,
-    imageKey: null,
-    pdfUrl: "",
-    pdfKey: "",
-    thumbnailUrl: null,
     ...overrides,
   }));
 
@@ -51,7 +46,7 @@ describe("coloringPage router", () => {
   });
 
   describe("getAll", () => {
-    it("returns only approved pages", async () => {
+    it("returns only approved pages with proxy URLs", async () => {
       mockFindMany.mockResolvedValue(makePages(1));
 
       const caller = getCaller();
@@ -62,6 +57,34 @@ describe("coloringPage router", () => {
       );
       expect(result.items).toHaveLength(1);
       expect(result.items[0]!.title).toBe("Page 0");
+      // Should not expose raw URLs
+      expect((result.items[0] as any).imageUrl).toBeUndefined();
+      expect((result.items[0] as any).pdfUrl).toBeUndefined();
+    });
+
+    it("returns previewUrl when imageUrl exists", async () => {
+      mockFindMany.mockResolvedValue(
+        makePages(1, { imageUrl: "https://utfs.io/image.png" }),
+      );
+
+      const caller = getCaller();
+      const result = await caller.getAll({});
+
+      expect(result.items[0]!.previewUrl).toBe("/api/preview?id=page-0");
+      expect(result.items[0]!.hasImage).toBe(true);
+    });
+
+    it("returns downloadUrl when pdfKey exists", async () => {
+      mockFindMany.mockResolvedValue(
+        makePages(1, { pdfKey: "some-pdf-key" }),
+      );
+
+      const caller = getCaller();
+      const result = await caller.getAll({});
+
+      expect(result.items[0]!.downloadUrl).toBe(
+        "/api/download?id=page-0&type=pdf",
+      );
     });
 
     it("returns empty when no approved pages exist", async () => {
@@ -75,14 +98,12 @@ describe("coloringPage router", () => {
     });
 
     it("sets nextCursor when more results exist beyond limit", async () => {
-      // Return limit+1 items to signal there are more pages
       mockFindMany.mockResolvedValue(makePages(3));
 
       const caller = getCaller();
       const result = await caller.getAll({ limit: 2 });
 
       expect(result.items).toHaveLength(2);
-      // nextCursor is the id of the extra (limit+1) item that was popped
       expect(result.nextCursor).toBe("page-2");
     });
 
@@ -134,13 +155,20 @@ describe("coloringPage router", () => {
   });
 
   describe("getBySlug", () => {
-    it("returns an approved page by slug", async () => {
-      mockFindFirst.mockResolvedValue(makePages(1)[0]);
+    it("returns an approved page with proxy URLs", async () => {
+      mockFindFirst.mockResolvedValue(
+        makePages(1, { imageUrl: "https://utfs.io/img.png", pdfKey: "pk" })[0],
+      );
 
       const caller = getCaller();
       const result = await caller.getBySlug({ slug: "dino-page" });
 
       expect(result).not.toBeNull();
+      expect(result!.previewUrl).toBe("/api/preview?id=page-0");
+      expect(result!.downloadUrl).toBe("/api/download?id=page-0&type=pdf");
+      // Should not expose raw URLs
+      expect((result as any).imageUrl).toBeUndefined();
+      expect((result as any).pdfUrl).toBeUndefined();
       expect(mockFindFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { slug: "dino-page", approved: true },

@@ -1,38 +1,41 @@
-import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { getPdfDirectory, getDownloadUrl } from '@/lib/pdf-service';
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "~/server/db";
+import { getSignedFileUrl } from "~/lib/uploadthing";
+
+const SIGNED_URL_TTL = 60; // 1 minute — just long enough for the redirect to complete
 
 export async function GET(request: NextRequest) {
-  const filename = request.nextUrl.searchParams.get('file');
+  const id = request.nextUrl.searchParams.get("id");
+  const type = request.nextUrl.searchParams.get("type") ?? "pdf"; // "pdf" or "image"
 
-  if (!filename) {
-    return NextResponse.json({ error: 'No file specified' }, { status: 400 });
+  if (!id) {
+    return NextResponse.json({ error: "Missing id parameter" }, { status: 400 });
   }
 
-  const safeFilename = path.basename(filename);
+  try {
+    const page = await db.coloringPage.findFirst({
+      where: { id, approved: true },
+      select: { pdfKey: true, imageKey: true },
+    });
 
-  // First try UploadThing
-  const uploadThingUrl = await getDownloadUrl(safeFilename);
-  if (uploadThingUrl) {
-    // Redirect to the UploadThing URL (faster, no bandwidth on our server)
-    return NextResponse.redirect(uploadThingUrl);
+    if (!page) {
+      return NextResponse.json({ error: "Page not found" }, { status: 404 });
+    }
+
+    const fileKey = type === "image" ? page.imageKey : page.pdfKey;
+
+    if (!fileKey) {
+      return NextResponse.json(
+        { error: `No ${type} available for this page` },
+        { status: 404 },
+      );
+    }
+
+    const signedUrl = await getSignedFileUrl(fileKey, SIGNED_URL_TTL);
+
+    return NextResponse.redirect(signedUrl);
+  } catch (error) {
+    console.error("Download API error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  // Fallback to local filesystem
-  const pdfDir = getPdfDirectory();
-  const filePath = path.join(pdfDir, safeFilename);
-
-  if (!fs.existsSync(filePath)) {
-    return NextResponse.json({ error: 'File not found' }, { status: 404 });
-  }
-
-  const fileBuffer = fs.readFileSync(filePath);
-
-  return new NextResponse(fileBuffer, {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${safeFilename}"`,
-    },
-  });
 }

@@ -14,7 +14,7 @@ export async function GET() {
         slug: p.slug,
         title: p.title,
         previewUrl: `/api/preview?id=${p.id}`,
-        pdfUrl: p.pdfUrl || null,
+        downloadUrl: p.pdfKey ? `/api/download?id=${p.id}&type=pdf` : null,
         createdAt: p.createdAt.toISOString(),
       })),
     );

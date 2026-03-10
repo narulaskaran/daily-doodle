@@ -7,7 +7,7 @@ interface ColoringPage {
   slug: string;
   title: string;
   previewUrl: string;
-  pdfUrl: string | null;
+  downloadUrl: string | null;
   createdAt: string;
 }
 

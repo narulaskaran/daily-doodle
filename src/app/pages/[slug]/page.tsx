@@ -22,9 +22,6 @@ export default async function ColoringPageDetail({ params }: Props) {
   const page = await api.coloringPage.getBySlug({ slug });
   if (!page) notFound();
 
-  const previewUrl = `/api/preview?id=${page.id}`;
-  const hasPdf = page.pdfUrl && page.pdfUrl.length > 0;
-
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
       <Link href="/">
@@ -40,16 +37,16 @@ export default async function ColoringPageDetail({ params }: Props) {
         <p className="mb-6 text-muted-foreground">{page.description}</p>
       )}
 
-      {page.imageUrl && (
+      {page.previewUrl && (
         <img
-          src={previewUrl}
+          src={page.previewUrl}
           alt={page.title}
           className="mb-6 w-full max-w-md rounded-lg border"
         />
       )}
 
-      {hasPdf && (
-        <a href={page.pdfUrl} target="_blank" rel="noopener noreferrer">
+      {page.downloadUrl && (
+        <a href={page.downloadUrl} target="_blank" rel="noopener noreferrer">
           <Button className="gap-2">
             <Download className="h-4 w-4" />
             Download PDF
