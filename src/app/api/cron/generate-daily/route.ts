@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import Replicate from "replicate";
-import { acquireReplicateRateLimit } from "~/lib/replicate-ratelimit";
+import { generateImageWithFlux } from "~/lib/replicate";
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
-
-// Replicate image generation - Flux Schnell
-const MODEL_ID = "black-forest-labs/flux-schnell";
-
-const replicate = new Replicate();
 
 // Composable prompt pieces for daily variety (kawaii style)
 const PROMPT_TEMPLATE =
@@ -116,40 +110,6 @@ function slugify(text: string): string {
     .slice(0, 80);
 }
 
-async function generateWithFlux(prompt: string): Promise<Buffer> {
-  const output = await replicate.run(MODEL_ID, {
-    input: {
-      prompt,
-      num_outputs: 1,
-      output_format: "png",
-    },
-  });
-
-  // Flux Schnell returns an array of FileOutput objects (ReadableStream with .blob() method)
-  const images = output as unknown[];
-  const firstImage = images[0];
-  if (!firstImage) {
-    throw new Error("No image output from Replicate");
-  }
-
-  // FileOutput extends ReadableStream and has a .blob() method.
-  // Convert to a Blob first, then to an ArrayBuffer.
-  let blob: Blob;
-  if (firstImage instanceof Blob) {
-    blob = firstImage;
-  } else if (typeof (firstImage as { blob?: unknown }).blob === "function") {
-    blob = await (firstImage as { blob(): Promise<Blob> }).blob();
-  } else if (typeof firstImage === "string") {
-    // Fallback: URL string — fetch the image
-    const resp = await fetch(firstImage);
-    blob = await resp.blob();
-  } else {
-    throw new Error(`Unexpected Replicate output type: ${typeof firstImage}`);
-  }
-
-  return Buffer.from(await blob.arrayBuffer());
-}
-
 async function handleGeneration(request: NextRequest) {
   try {
     const today = new Date().toISOString().split("T")[0]!;
@@ -206,8 +166,7 @@ async function handleGeneration(request: NextRequest) {
       console.log(`Generating image ${seqNum}/4:`, prompt.substring(0, 50) + "...");
 
       try {
-        await acquireReplicateRateLimit();
-        const imageBuffer = await generateWithFlux(prompt);
+        const imageBuffer = await generateImageWithFlux(prompt);
         const filename = `${today}_0${seqNum}.png`;
 
         const uploaded = await uploadImage(imageBuffer, filename);

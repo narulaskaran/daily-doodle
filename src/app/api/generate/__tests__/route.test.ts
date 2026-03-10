@@ -24,12 +24,9 @@ vi.mock("~/lib/uploadthing", () => ({
   }),
 }));
 
-const mockRun = vi.fn();
-vi.mock("replicate", () => ({
-  // Must use function keyword so `new Replicate()` works
-  default: vi.fn().mockImplementation(function () {
-    return { run: mockRun };
-  }),
+const mockGenerateImage = vi.fn();
+vi.mock("~/lib/replicate", () => ({
+  generateImageWithFlux: (...args: unknown[]) => mockGenerateImage(...args),
 }));
 
 process.env.GENERATE_API_KEY = "test-gen-key";
@@ -47,23 +44,13 @@ function makeRequest(opts?: { headers?: Record<string, string>; body?: unknown }
   return new NextRequest("http://localhost:3000/api/generate", init);
 }
 
-// Mock global fetch used to download the generated image URL
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
-
 describe("POST /api/generate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: empty ideas bank so it uses fallback
     mockFindMany.mockResolvedValue([]);
-    // Default mock: Replicate returns FileOutput objects with a url() method
-    mockRun.mockResolvedValue([{ url: () => "https://replicate.delivery/generated.png" }]);
-    // Mock fetch to return fake PNG bytes
-    mockFetch.mockResolvedValue({
-      ok: true,
-      statusText: "OK",
-      arrayBuffer: () => Promise.resolve(new Uint8Array(8).buffer),
-    });
+    // Default mock: generateImageWithFlux returns a Buffer
+    mockGenerateImage.mockResolvedValue(Buffer.from(new Uint8Array(8)));
   });
 
   it("returns 401 without API key", async () => {

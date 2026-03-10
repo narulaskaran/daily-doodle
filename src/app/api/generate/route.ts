@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import Replicate from "replicate";
+import { generateImageWithFlux } from "~/lib/replicate";
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
-
-// Replicate image generation - Flux Schnell
-const MODEL_ID = "black-forest-labs/flux-schnell";
-
-const replicate = new Replicate();
 
 const PROMPT_TEMPLATE =
   "Black and white line art coloring page, pure white background. A kawaii, chubby [ANIMAL] [ACTION] in a cozy [SCENE]. Thick, bold, uniform black outlines for the main shapes, clean simple lines for inner details. Surrounded by cute, simple props like [PROPS]. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.";
@@ -62,31 +57,6 @@ function slugify(text: string): string {
     .slice(0, 80);
 }
 
-async function generateWithFlux(prompt: string): Promise<Buffer> {
-  const output = await replicate.run(MODEL_ID, {
-    input: {
-      prompt,
-      num_outputs: 1,
-      output_format: "png",
-    },
-  });
-
-  // Flux Schnell returns an array of FileOutput objects (extend ReadableStream)
-  const images = output as Array<{ url: () => string }>;
-  const firstImage = images[0];
-  if (!firstImage) {
-    throw new Error("No image output from Replicate");
-  }
-
-  // FileOutput.url() returns the URL string; fetch it to get the raw bytes
-  const imageUrl = firstImage.url();
-  const response = await fetch(imageUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch generated image: ${response.statusText}`);
-  }
-  return Buffer.from(await response.arrayBuffer());
-}
-
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate using API key header
@@ -115,7 +85,7 @@ export async function POST(request: NextRequest) {
     console.log("Generating image with prompt:", prompt.substring(0, 50) + "...");
 
     // 4. Generate image using Flux Schnell via Replicate
-    const imageBuffer = await generateWithFlux(prompt);
+    const imageBuffer = await generateImageWithFlux(prompt);
 
     // 5. Upload to UploadThing
     const timestamp = new Date().toISOString().split("T")[0];

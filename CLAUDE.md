@@ -56,7 +56,7 @@ Components are installed to `src/components/ui/`.
 
 See `.env.example` for required variables. Never commit `.env` files.
 
-Key env vars configured in Vercel: `UPLOADTHING_TOKEN`, `OPEN_ROUTER_KEY`.
+Key env vars configured in Vercel: `UPLOADTHING_TOKEN`, `OPEN_ROUTER_KEY`, `REPLICATE_API_TOKEN`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
 
 ## Vercel Project
 
@@ -78,6 +78,13 @@ Migrations are fully automated via CI. No manual DB steps are needed on deploy.
 - **Local seeding**: `npm run db:seed` runs `prisma/seed.ts` for local dev (also runs automatically on `prisma migrate dev` and `prisma migrate reset`)
 
 **Never use `prisma db push` in CI or production** — always use migration files so changes are tracked and reproducible.
+
+## Image Generation (Replicate)
+
+- **Shared utility**: `src/lib/replicate.ts` exports `generateImageWithFlux(prompt)` — use this for ALL Replicate image generation. Both the nightly cron (`/api/cron/generate-daily`) and the admin generate button (`/api/generate`) use it.
+- **Rate limiting**: `src/lib/replicate-ratelimit.ts` enforces a 10s local delay between calls (for burst-1 rate limit on low-credit accounts) plus a distributed Redis rate limiter via `@upstash/ratelimit` + `@upstash/redis` when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set.
+- **Replicate SDK output**: The SDK returns `FileOutput` objects (extends `ReadableStream`, has `.blob()`) — NOT `Blob`. The shared utility handles this. Never call `.arrayBuffer()` directly on Replicate output.
+- **Do NOT** duplicate the Replicate client or image generation logic in route files — always import from `~/lib/replicate`.
 
 ---
 
