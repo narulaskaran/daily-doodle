@@ -398,6 +398,7 @@ function PageCard({
   const [reviewComment, setReviewComment] = useState('');
   const [regenerating, setRegenerating] = useState(false);
   const [showRevisions, setShowRevisions] = useState(false);
+  const [promptExpanded, setPromptExpanded] = useState(false);
 
   const status = page.approved === null ? 'pending' : page.approved ? 'approved' : 'rejected';
   const hasRevisions = page.revisions && page.revisions.length > 0;
@@ -435,7 +436,12 @@ function PageCard({
         </div>
       </div>
       <div className="p-4">
-        <p className="text-sm text-gray-600 line-clamp-2 mb-2">{page.prompt}</p>
+        <p
+          className={`text-sm text-gray-600 mb-2 ${promptExpanded ? '' : 'line-clamp-2'} cursor-pointer`}
+          onClick={() => setPromptExpanded(!promptExpanded)}
+        >
+          {page.prompt}
+        </p>
         <p className="text-xs text-gray-400 mb-4">
           {new Date(page.createdAt).toLocaleString()}
         </p>
