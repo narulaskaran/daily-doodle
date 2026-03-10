@@ -10,11 +10,12 @@ export async function GET() {
 
     return NextResponse.json(
       pages.map((p) => ({
-        filename: p.slug,
-        path: p.imageUrl ?? p.pdfUrl,
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        previewUrl: `/api/preview?id=${p.id}`,
+        pdfUrl: p.pdfUrl || null,
         createdAt: p.createdAt.toISOString(),
-        url: p.imageUrl ?? p.pdfUrl,
-        key: p.imageKey ?? p.pdfKey,
       })),
     );
   } catch (error) {

@@ -3,15 +3,17 @@
 import { useEffect, useState } from 'react';
 
 interface ColoringPage {
-  filename: string;
-  path: string;
+  id: string;
+  slug: string;
+  title: string;
+  previewUrl: string;
+  pdfUrl: string | null;
   createdAt: string;
 }
 
 export default function Gallery() {
   const [pages, setPages] = useState<ColoringPage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPage, setSelectedPage] = useState<ColoringPage | null>(null);
 
   useEffect(() => {
     fetch('/api/coloring-pages')
@@ -105,19 +107,22 @@ export default function Gallery() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4">
         {pages.map((page) => (
           <a
-            key={page.filename}
-            href={`/api/download?file=${encodeURIComponent(page.filename)}`}
-            target="_blank"
-            rel="noopener noreferrer"
+            key={page.id}
+            href={`/pages/${page.slug}`}
             className="group block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-100"
           >
-            <div className="aspect-square bg-gray-50 flex items-center justify-center relative">
-              <div className="text-6xl">🎨</div>
+            <div className="aspect-[8.5/11] bg-gray-50 relative overflow-hidden">
+              <img
+                src={page.previewUrl}
+                alt={page.title}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
               <div className="absolute inset-0 bg-purple-600 opacity-0 group-hover:opacity-10 transition-opacity" />
             </div>
             <div className="p-4">
               <h3 className="font-medium text-gray-800 truncate">
-                {page.filename.replace('.pdf', '').replace(/-/g, ' ')}
+                {page.title}
               </h3>
               <p className="text-sm text-gray-400 mt-1">
                 {new Date(page.createdAt).toLocaleDateString()}

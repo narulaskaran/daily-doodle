@@ -20,7 +20,9 @@ describe("GET /api/coloring-pages", () => {
   it("returns approved pages mapped to expected shape", async () => {
     mockFindMany.mockResolvedValue([
       {
+        id: "page-1",
         slug: "cute-cat",
+        title: "Cute Cat",
         imageUrl: "https://example.com/cat.png",
         pdfUrl: "",
         imageKey: "key-123",
@@ -34,11 +36,12 @@ describe("GET /api/coloring-pages", () => {
 
     expect(data).toHaveLength(1);
     expect(data[0]).toEqual({
-      filename: "cute-cat",
-      path: "https://example.com/cat.png",
+      id: "page-1",
+      slug: "cute-cat",
+      title: "Cute Cat",
+      previewUrl: "/api/preview?id=page-1",
+      pdfUrl: null,
       createdAt: "2025-01-15T12:00:00.000Z",
-      url: "https://example.com/cat.png",
-      key: "key-123",
     });
   });
 
@@ -62,10 +65,12 @@ describe("GET /api/coloring-pages", () => {
     expect(data).toEqual([]);
   });
 
-  it("falls back to pdfUrl when imageUrl is null", async () => {
+  it("returns pdfUrl when available", async () => {
     mockFindMany.mockResolvedValue([
       {
+        id: "page-2",
         slug: "pdf-page",
+        title: "PDF Page",
         imageUrl: null,
         pdfUrl: "https://example.com/page.pdf",
         imageKey: null,
@@ -77,7 +82,7 @@ describe("GET /api/coloring-pages", () => {
     const response = await GET();
     const data = await response.json();
 
-    expect(data[0].url).toBe("https://example.com/page.pdf");
-    expect(data[0].key).toBe("pdf-key");
+    expect(data[0].pdfUrl).toBe("https://example.com/page.pdf");
+    expect(data[0].previewUrl).toBe("/api/preview?id=page-2");
   });
 });
