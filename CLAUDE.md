@@ -8,13 +8,13 @@ This is a T3 Stack app (Next.js + tRPC + Prisma + NextAuth + Tailwind CSS) with 
 
 - **Framework**: Next.js 15 (App Router, Turbopack)
 - **API**: tRPC v11
-- **Database**: Prisma v7 (SQLite for dev, swap for prod later)
+- **Database**: Prisma v7 (PostgreSQL in prod, SQLite for tests)
 - **Auth**: NextAuth v5 (not yet configured)
 - **Styling**: Tailwind CSS v4 + shadcn/ui
 - **Language**: TypeScript (strict mode)
 - **Testing**: Vitest
 - **Deployment**: Vercel (auto-deploys from `main`)
-- **CI**: GitHub Actions (typecheck + build + test)
+- **CI**: GitHub Actions (typecheck + build + test + migrate)
 
 ## Key Paths
 
@@ -63,6 +63,21 @@ Key env vars configured in Vercel: `UPLOADTHING_TOKEN`, `OPEN_ROUTER_KEY`.
 - **Team**: `team_qxizXRyE1AjNBDMY6ejl7suU` (Karan Narula's projects)
 - **Project ID**: `prj_EsYjoRlfjveRRG2tTRnI7tvBeVFv`
 - **Production URL**: https://daily-doodle-pi.vercel.app
+
+## Database Migrations
+
+Migrations are fully automated via CI. No manual DB steps are needed on deploy.
+
+- **Schema changes**: Edit `prisma/schema.prisma`, then run `npx prisma migrate dev --name <name>` locally to generate a migration file in `prisma/migrations/`
+- **Data seeds**: Write seed data as SQL INSERT statements in a new migration file (see `prisma/migrations/20260310000000_seed_prompt_ideas/` for an example). Use `ON CONFLICT DO NOTHING` for idempotency.
+- **CI pipeline** (on push to `main`):
+  1. `build` job: typecheck + build + test (no DB connection needed)
+  2. `migrate` job: runs `prisma migrate deploy` against prod DB via `DATABASE_URL_UNPOOLED` secret
+- **Vercel build**: Only runs `prisma generate && next build` (client generation, no migrations)
+- **Prompt ideas**: Stored in the `PromptIdea` table. The cron job draws from this table via mix-and-match. Add new prompts via SQL migrations, not by editing hardcoded arrays.
+- **Local seeding**: `npm run db:seed` runs `prisma/seed.ts` for local dev (also runs automatically on `prisma migrate dev` and `prisma migrate reset`)
+
+**Never use `prisma db push` in CI or production** — always use migration files so changes are tracked and reproducible.
 
 ---
 

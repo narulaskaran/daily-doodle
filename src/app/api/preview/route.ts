@@ -4,21 +4,19 @@ import { db } from "~/server/db";
 import { getSignedFileUrl } from "~/lib/uploadthing";
 
 const PREVIEW_WIDTH = 600;
-const WATERMARK_TEXT = "Daily Doodle - Preview";
 const CACHE_MAX_AGE = 60 * 60; // 1 hour
 
 function buildWatermarkSvg(width: number, height: number): Buffer {
-  // Create diagonal repeating watermark text
-  const fontSize = Math.round(width / 15);
+  // Font-free diagonal stripe watermark (avoids fontconfig issues on Vercel)
+  const stripeWidth = 6;
+  const gap = 40;
   const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <pattern id="watermark" patternUnits="userSpaceOnUse"
-          width="${width * 0.6}" height="${height * 0.4}"
+          width="${gap}" height="${gap}"
           patternTransform="rotate(-30)">
-          <text x="0" y="${fontSize}" font-family="Arial, sans-serif"
-            font-size="${fontSize}" fill="rgba(128,128,128,0.35)"
-            font-weight="bold">${WATERMARK_TEXT}</text>
+          <rect width="${stripeWidth}" height="${gap}" fill="rgba(128,128,128,0.25)" />
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#watermark)" />

@@ -1,0 +1,35 @@
+-- Seed PromptIdea table with initial prompt combos
+-- Uses gen_random_uuid() for cuid-like IDs (Postgres built-in)
+INSERT INTO "PromptIdea" ("id", "animal", "action", "scene", "props", "used", "createdAt")
+VALUES
+  (gen_random_uuid(), 'bear', 'relaxing on a towel', 'sunny beach', 'a sandcastle, a beach umbrella, and a cooler', false, NOW()),
+  (gen_random_uuid(), 'cat', 'baking cookies', 'kitchen', 'a mixing bowl, oven mitts, and a cookie jar', false, NOW()),
+  (gen_random_uuid(), 'frog', 'watering plants', 'greenhouse', 'potted plants, a watering can, and little ladybugs', false, NOW()),
+  (gen_random_uuid(), 'dinosaur', 'picking flowers', 'garden', 'a watering can, potted plants, and butterflies', false, NOW()),
+  (gen_random_uuid(), 'bunny', 'reading a book', 'library nook', 'stacked books, a reading lamp, and a warm blanket', false, NOW()),
+  (gen_random_uuid(), 'penguin', 'sipping hot cocoa', 'snowy cabin', 'a steaming mug, marshmallows, and a cozy fireplace', false, NOW()),
+  (gen_random_uuid(), 'fox', 'painting on a canvas', 'art studio', 'paint brushes, a palette, and jars of paint', false, NOW()),
+  (gen_random_uuid(), 'owl', 'stargazing through a telescope', 'rooftop at night', 'a telescope, twinkling stars, and a crescent moon', false, NOW()),
+  (gen_random_uuid(), 'raccoon', 'selling lemonade', 'sunny neighborhood', 'a lemonade stand, cups, and a pitcher of lemonade', false, NOW()),
+  (gen_random_uuid(), 'hedgehog', 'picking apples', 'orchard', 'apple trees, a basket, and fallen leaves', false, NOW()),
+  (gen_random_uuid(), 'duck', 'splashing in puddles', 'rainy park', 'rain boots, an umbrella, and raindrops', false, NOW()),
+  (gen_random_uuid(), 'mouse', 'decorating a cake', 'bakery', 'frosting bags, sprinkles, and a tiered cake', false, NOW()),
+  (gen_random_uuid(), 'elephant', 'planting seeds', 'vegetable garden', 'seed packets, a trowel, and tiny sprouts', false, NOW()),
+  (gen_random_uuid(), 'panda', 'doing yoga', 'bamboo garden', 'a yoga mat, bamboo stalks, and cherry blossoms', false, NOW()),
+  (gen_random_uuid(), 'otter', 'floating on its back', 'gentle river', 'lily pads, a little fish, and reeds', false, NOW()),
+  (gen_random_uuid(), 'turtle', 'having a picnic', 'sunny meadow', 'a checkered blanket, a basket, and sandwiches', false, NOW()),
+  (gen_random_uuid(), 'squirrel', 'roasting marshmallows', 'campfire scene', 'a campfire, marshmallow sticks, and a tent', false, NOW()),
+  (gen_random_uuid(), 'sheep', 'knitting a scarf', 'cozy living room', 'yarn balls, knitting needles, and a rocking chair', false, NOW()),
+  (gen_random_uuid(), 'pig', 'splashing in a mud bath', 'farm', 'a wooden fence, sunflowers, and a barn', false, NOW()),
+  (gen_random_uuid(), 'koala', 'napping in a tree', 'eucalyptus forest', 'eucalyptus leaves, butterflies, and fluffy clouds', false, NOW()),
+  (gen_random_uuid(), 'dog', 'catching frisbees', 'sunny park', 'a frisbee, a park bench, and daisies', false, NOW()),
+  (gen_random_uuid(), 'giraffe', 'reaching for fruit', 'savanna', 'tall trees, birds, and fluffy clouds', false, NOW()),
+  (gen_random_uuid(), 'hamster', 'running on a wheel', 'cozy hamster home', 'a hamster wheel, wood shavings, and sunflower seeds', false, NOW()),
+  (gen_random_uuid(), 'deer', 'drinking from a stream', 'enchanted forest', 'mushrooms, ferns, and fireflies', false, NOW()),
+  (gen_random_uuid(), 'sloth', 'hanging from a branch', 'tropical rainforest', 'vines, tropical flowers, and a toucan', false, NOW()),
+  (gen_random_uuid(), 'seal', 'balancing a ball on its nose', 'seaside dock', 'a beach ball, seagulls, and waves', false, NOW()),
+  (gen_random_uuid(), 'rabbit', 'tending a carrot patch', 'country garden', 'carrots, a garden gate, and bumblebees', false, NOW()),
+  (gen_random_uuid(), 'lion cub', 'chasing butterflies', 'grassy savanna', 'tall grass, butterflies, and wildflowers', false, NOW()),
+  (gen_random_uuid(), 'hippo', 'taking a bubble bath', 'bathroom', 'rubber ducks, bubbles, and a shower cap', false, NOW()),
+  (gen_random_uuid(), 'red panda', 'eating bamboo shoots', 'misty mountain', 'bamboo, cherry blossoms, and stepping stones', false, NOW())
+ON CONFLICT DO NOTHING;

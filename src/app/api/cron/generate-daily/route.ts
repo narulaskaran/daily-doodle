@@ -135,15 +135,7 @@ async function generateWithFlux(prompt: string): Promise<Buffer> {
   return Buffer.from(await firstImage.arrayBuffer());
 }
 
-export async function POST(request: NextRequest) {
-  // Verify cron secret for security (Vercel sends this automatically for cron jobs)
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+async function handleGeneration(request: NextRequest) {
   try {
     const today = new Date().toISOString().split("T")[0]!;
 
@@ -173,18 +165,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get prompts (from request or generate random defaults)
+    // Get prompts (from request body if POST, or generate random defaults)
     const remaining = 4 - todayCount;
     let promptsToRun: string[];
-    try {
-      const body = await request.json();
-      if (body.prompts && Array.isArray(body.prompts)) {
-        promptsToRun = (body.prompts as string[]).slice(0, remaining);
-      } else {
+    if (request.method === "POST") {
+      try {
+        const body = await request.json();
+        if (body.prompts && Array.isArray(body.prompts)) {
+          promptsToRun = (body.prompts as string[]).slice(0, remaining);
+        } else {
+          promptsToRun = await generateDefaultPrompts(remaining);
+        }
+      } catch {
         promptsToRun = await generateDefaultPrompts(remaining);
       }
-    } catch {
-      // No body, generate random defaults
+    } else {
       promptsToRun = await generateDefaultPrompts(remaining);
     }
 
@@ -230,7 +225,6 @@ export async function POST(request: NextRequest) {
         console.error(`Generation ${seqNum} failed:`, err);
         results.push({ success: false, error: err instanceof Error ? err.message : "Unknown" });
       }
-
     }
 
     const successCount = results.filter((r) => r.success).length;
@@ -250,12 +244,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
-  return NextResponse.json({
-    message: "Daily Doodle Cron - POST to trigger generation",
-    schedule: "0 4 * * * (4 AM UTC daily)",
-    generates: "4 coloring sheets per run",
-    model: "Flux Schnell via Replicate",
-    auth: "Bearer CRON_SECRET if configured",
-  });
+export async function GET(request: NextRequest) {
+  // Vercel cron jobs invoke routes via GET
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return handleGeneration(request);
+}
+
+export async function POST(request: NextRequest) {
+  // Manual invocation via POST (also supports custom prompts in body)
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return handleGeneration(request);
 }

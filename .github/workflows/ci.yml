@@ -47,8 +47,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Push database schema
-        run: ./node_modules/.bin/prisma db push
+      - name: Deploy database migrations
+        run: ./node_modules/.bin/prisma migrate deploy
         env:
           # Use the direct (unpooled) connection — Prisma's migration engine
           # does not work correctly with connection poolers (e.g. PgBouncer/Neon pooler)
