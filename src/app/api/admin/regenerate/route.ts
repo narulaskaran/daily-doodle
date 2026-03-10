@@ -4,8 +4,8 @@ import { acquireReplicateRateLimit } from "~/lib/replicate-ratelimit";
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
 
-// Use lucataco/flux-img2img for image-guided regeneration (supports both image + text prompt)
-const IMG2IMG_MODEL = "lucataco/flux-img2img";
+// Use flux-kontext-pro for image-guided regeneration (supports both image + text prompt)
+const IMG2IMG_MODEL = "black-forest-labs/flux-kontext-pro";
 const ATTEMPTS = 3;
 
 const replicate = new Replicate();
@@ -24,22 +24,27 @@ async function generateImg2Img(
 ): Promise<Buffer> {
   const output = await replicate.run(IMG2IMG_MODEL, {
     input: {
-      image: imageUrl,
+      input_image: imageUrl,
       prompt,
-      strength: 0.65,
-      num_inference_steps: 28,
-      guidance_scale: 3.5,
       output_format: "png",
+      aspect_ratio: "match_input_image",
     },
   });
 
-  // lucataco/flux-img2img returns a single URL string or array
+  // flux-kontext-pro returns a single FileOutput (ReadableStream with url())
   const result = Array.isArray(output) ? output[0] : output;
   if (!result) {
     throw new Error("No image output from Replicate img2img");
   }
 
-  // Result may be a URL string or a Blob
+  // Result may be a FileOutput with url(), a URL string, or a Blob
+  if (typeof result === "object" && "url" in result && typeof (result as { url: () => string }).url === "function") {
+    const imageResultUrl = (result as { url: () => string }).url();
+    const response = await fetch(imageResultUrl);
+    if (!response.ok) throw new Error(`Failed to fetch generated image: ${response.statusText}`);
+    return Buffer.from(await response.arrayBuffer());
+  }
+
   if (typeof result === "string") {
     const response = await fetch(result);
     if (!response.ok) throw new Error(`Failed to fetch generated image: ${response.statusText}`);
