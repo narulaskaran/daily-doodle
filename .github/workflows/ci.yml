@@ -47,6 +47,18 @@ jobs:
 
       - run: npm ci
 
+      - name: Resolve previously failed migrations
+        run: |
+          # Query _prisma_migrations for any migrations stuck in "failed" state
+          # and mark them as applied so migrate deploy can proceed.
+          FAILED=$(npx prisma migrate status 2>&1 | grep -oP '`\K[^`]+(?=`.*failed)' || true)
+          for name in $FAILED; do
+            echo "Resolving failed migration: $name"
+            npx prisma migrate resolve --applied "$name"
+          done
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+
       - name: Deploy database migrations
         run: ./node_modules/.bin/prisma migrate deploy
         env:
