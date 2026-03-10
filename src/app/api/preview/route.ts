@@ -54,21 +54,23 @@ export async function GET(request: NextRequest) {
 
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
 
-    // Downscale the image
-    const resized = sharp(imageBuffer).resize(PREVIEW_WIDTH, undefined, {
-      fit: "inside",
-      withoutEnlargement: true,
-    });
+    // Downscale the image to a buffer first so we know the actual dimensions
+    const resizedBuffer = await sharp(imageBuffer)
+      .resize(PREVIEW_WIDTH, undefined, {
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .toBuffer();
 
-    const metadata = await resized.metadata();
+    const metadata = await sharp(resizedBuffer).metadata();
     const finalWidth = metadata.width ?? PREVIEW_WIDTH;
     const finalHeight = metadata.height ?? PREVIEW_WIDTH;
 
-    // Create watermark overlay
+    // Create watermark overlay matching the resized dimensions
     const watermarkSvg = buildWatermarkSvg(finalWidth, finalHeight);
 
     // Composite watermark on top
-    const outputBuffer = await resized
+    const outputBuffer = await sharp(resizedBuffer)
       .composite([{ input: watermarkSvg, top: 0, left: 0 }])
       .png({ quality: 80 })
       .toBuffer();
