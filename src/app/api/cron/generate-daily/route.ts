@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import Replicate from "replicate";
-import { acquireReplicateRateLimit } from "~/lib/replicate-ratelimit";
+import { generateImageWithFlux } from "~/lib/replicate";
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
-
-// Replicate image generation - Flux Schnell
-const MODEL_ID = "black-forest-labs/flux-schnell";
-
-const replicate = new Replicate();
 
 // Composable prompt pieces for daily variety (kawaii style)
 const PROMPT_TEMPLATE =
@@ -116,25 +110,6 @@ function slugify(text: string): string {
     .slice(0, 80);
 }
 
-async function generateWithFlux(prompt: string): Promise<Buffer> {
-  const output = await replicate.run(MODEL_ID, {
-    input: {
-      prompt,
-      num_outputs: 1,
-      output_format: "png",
-    },
-  });
-
-  // Flux Schnell returns an array of FileOutput objects (implement Blob)
-  const images = output as Blob[];
-  const firstImage = images[0];
-  if (!firstImage) {
-    throw new Error("No image output from Replicate");
-  }
-
-  return Buffer.from(await firstImage.arrayBuffer());
-}
-
 async function handleGeneration(request: NextRequest) {
   try {
     const today = new Date().toISOString().split("T")[0]!;
@@ -191,8 +166,7 @@ async function handleGeneration(request: NextRequest) {
       console.log(`Generating image ${seqNum}/4:`, prompt.substring(0, 50) + "...");
 
       try {
-        await acquireReplicateRateLimit();
-        const imageBuffer = await generateWithFlux(prompt);
+        const imageBuffer = await generateImageWithFlux(prompt);
         const filename = `${today}_0${seqNum}.png`;
 
         const uploaded = await uploadImage(imageBuffer, filename);

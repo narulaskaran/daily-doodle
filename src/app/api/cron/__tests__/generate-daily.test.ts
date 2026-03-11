@@ -19,8 +19,9 @@ vi.mock("~/server/db", () => ({
   },
 }));
 
-vi.mock("~/lib/replicate-ratelimit", () => ({
-  acquireReplicateRateLimit: vi.fn().mockResolvedValue(undefined),
+const mockGenerateImage = vi.fn();
+vi.mock("~/lib/replicate", () => ({
+  generateImageWithFlux: (...args: unknown[]) => mockGenerateImage(...args),
 }));
 
 vi.mock("~/lib/uploadthing", () => ({
@@ -31,14 +32,6 @@ vi.mock("~/lib/uploadthing", () => ({
     size: 1024,
   }),
   listFiles: vi.fn().mockResolvedValue([]),
-}));
-
-const mockRun = vi.fn();
-vi.mock("replicate", () => ({
-  // Must use function keyword so `new Replicate()` works
-  default: vi.fn().mockImplementation(function () {
-    return { run: mockRun };
-  }),
 }));
 
 process.env.REPLICATE_API_TOKEN = "test-replicate-token";
@@ -59,9 +52,8 @@ function makeRequest(opts?: { headers?: Record<string, string>; body?: unknown }
 describe("POST /api/cron/generate-daily", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default mock: Replicate returns a Blob image
-    const mockBlob = new Blob([new Uint8Array(8)], { type: "image/png" });
-    mockRun.mockResolvedValue([mockBlob]);
+    // Default mock: generateImageWithFlux returns a Buffer
+    mockGenerateImage.mockResolvedValue(Buffer.from(new Uint8Array(8)));
     // Default: no prompt ideas in DB, so fallback to hardcoded combos
     mockFindMany.mockResolvedValue([]);
   });
@@ -140,8 +132,7 @@ describe("POST /api/cron/generate-daily", () => {
 describe("GET /api/cron/generate-daily", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    const mockBlob = new Blob([new Uint8Array(8)], { type: "image/png" });
-    mockRun.mockResolvedValue([mockBlob]);
+    mockGenerateImage.mockResolvedValue(Buffer.from(new Uint8Array(8)));
   });
 
   it("returns 401 with invalid cron secret", async () => {

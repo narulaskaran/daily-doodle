@@ -27,16 +27,32 @@ function getRatelimit(): Ratelimit | null {
   return _ratelimit;
 }
 
+// Local minimum delay (ms) between Replicate calls to stay within the
+// 6 req/min (i.e. 1 req per 10s) burst-1 rate limit on low-credit accounts.
+const MIN_DELAY_MS = 10_000;
+let _lastCallTime = 0;
+
 /**
  * Acquires a rate-limit token for a Replicate image generation request.
  *
- * If the 6-rpm limit is already exhausted, this function waits until the
- * sliding window resets and then retries — ensuring the caller can proceed
- * without hitting a 429 from Replicate.
- *
- * No-ops gracefully when Upstash env vars are not configured.
+ * Always enforces a local minimum delay between calls (10s) to respect the
+ * burst-1 rate limit. Additionally uses Redis (via Upstash) for distributed
+ * coordination when configured.
  */
 export async function acquireReplicateRateLimit(): Promise<void> {
+  // Local delay — works even without Redis
+  const now = Date.now();
+  const elapsed = now - _lastCallTime;
+  if (_lastCallTime > 0 && elapsed < MIN_DELAY_MS) {
+    const waitMs = MIN_DELAY_MS - elapsed;
+    console.log(
+      `Replicate local rate limit: waiting ${Math.ceil(waitMs / 1000)}s before next request...`,
+    );
+    await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
+  }
+  _lastCallTime = Date.now();
+
+  // Distributed Redis rate limit (if configured)
   const limiter = getRatelimit();
   if (!limiter) return;
 
