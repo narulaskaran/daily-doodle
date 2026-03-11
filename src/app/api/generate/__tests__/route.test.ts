@@ -108,7 +108,7 @@ describe("POST /api/generate", () => {
     const createCall = mockCreate.mock.calls[0]![0] as { data: Record<string, unknown> };
     const prompt = createCall.data.prompt as string;
     expect(prompt).toContain("chicken");
-    expect(prompt).toContain("coloring book illustration");
+    expect(prompt).toContain("coloring book page");
   });
 
   it("falls back to hardcoded components when ideas bank is empty", async () => {
@@ -126,7 +126,7 @@ describe("POST /api/generate", () => {
 
     const createCall = mockCreate.mock.calls[0]![0] as { data: Record<string, unknown> };
     const prompt = createCall.data.prompt as string;
-    expect(prompt).toContain("coloring book illustration");
+    expect(prompt).toContain("coloring book page");
   });
 
   it("returns 500 if REPLICATE_API_TOKEN is not set", async () => {

@@ -740,7 +740,8 @@ function PromptIdeasPanel({ apiKey }: { apiKey: string }) {
                   </div>
                   <p className="text-sm text-gray-700">
                     A kawaii, chubby <strong>{idea.animal}</strong> {idea.action} in a cozy {idea.scene}.
-                    Props: {idea.props}
+                    Props: {idea.props}.
+                    <span className="text-gray-400 italic"> (Template selected randomly at generation time)</span>
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
                     Added {new Date(idea.createdAt).toLocaleDateString()}
