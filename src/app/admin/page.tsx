@@ -39,7 +39,7 @@ export default function AdminPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'pages' | 'ideas'>('pages');
+  const [activeTab, setActiveTab] = useState<'pages' | 'ideas' | 'guidelines'>('pages');
 
   const apiKey = typeof window !== 'undefined'
     ? localStorage.getItem('admin_api_key') || ''
@@ -93,7 +93,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleApprove = async (id: string, approved: boolean) => {
+  const handleApprove = async (id: string, approved: boolean, rejectionFeedback?: string) => {
     try {
       const res = await fetch('/api/admin/pages', {
         method: 'PATCH',
@@ -101,7 +101,7 @@ export default function AdminPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({ id, approved }),
+        body: JSON.stringify({ id, approved, rejectionFeedback }),
       });
 
       if (!res.ok) throw new Error('Failed to update');
@@ -109,7 +109,7 @@ export default function AdminPage() {
       setPages(pages.map(p =>
         p.id === id ? { ...p, approved, rejected: !approved } : p
       ));
-      setSuccess(approved ? 'Page approved!' : 'Page rejected');
+      setSuccess(approved ? 'Page approved!' : rejectionFeedback ? 'Page rejected — feedback saved as guideline' : 'Page rejected');
     } catch {
       setError('Failed to update page');
     }
@@ -276,10 +276,22 @@ export default function AdminPage() {
           >
             Prompt Ideas Bank
           </button>
+          <button
+            onClick={() => setActiveTab('guidelines')}
+            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'guidelines'
+                ? 'border-purple-600 text-purple-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Image Guidelines
+          </button>
         </div>
 
         {activeTab === 'ideas' ? (
           <PromptIdeasPanel apiKey={apiKey} />
+        ) : activeTab === 'guidelines' ? (
+          <GuidelinesPanel apiKey={apiKey} />
         ) : (
           <>
             {/* Stats */}
@@ -321,7 +333,7 @@ export default function AdminPage() {
                           key={page.id}
                           page={page}
                           onApprove={() => handleApprove(page.id, true)}
-                          onReject={() => handleApprove(page.id, false)}
+                          onReject={(feedback) => handleApprove(page.id, false, feedback)}
                           onDelete={() => handleDelete(page.id)}
                           onRegenerate={(comment) => handleRegenerate(page.id, comment)}
                           onChooseRevision={(revId) => handleChooseRevision(page.id, revId)}
@@ -341,7 +353,7 @@ export default function AdminPage() {
                           key={page.id}
                           page={page}
                           onApprove={() => handleApprove(page.id, true)}
-                          onReject={() => handleApprove(page.id, false)}
+                          onReject={(feedback) => handleApprove(page.id, false, feedback)}
                           onDelete={() => handleDelete(page.id)}
                           onRegenerate={(comment) => handleRegenerate(page.id, comment)}
                           onChooseRevision={(revId) => handleChooseRevision(page.id, revId)}
@@ -361,7 +373,7 @@ export default function AdminPage() {
                           key={page.id}
                           page={page}
                           onApprove={() => handleApprove(page.id, true)}
-                          onReject={() => handleApprove(page.id, false)}
+                          onReject={(feedback) => handleApprove(page.id, false, feedback)}
                           onDelete={() => handleDelete(page.id)}
                           onRegenerate={(comment) => handleRegenerate(page.id, comment)}
                           onChooseRevision={(revId) => handleChooseRevision(page.id, revId)}
@@ -389,7 +401,7 @@ function PageCard({
 }: {
   page: GeneratedPage;
   onApprove: () => void;
-  onReject: () => void;
+  onReject: (feedback?: string) => void;
   onDelete: () => void;
   onRegenerate: (comment: string) => void;
   onChooseRevision: (revisionId: string) => void;
@@ -399,6 +411,9 @@ function PageCard({
   const [regenerating, setRegenerating] = useState(false);
   const [showRevisions, setShowRevisions] = useState(false);
   const [promptExpanded, setPromptExpanded] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectionFeedback, setRejectionFeedback] = useState('');
+  const [rejecting, setRejecting] = useState(false);
 
   const status = page.approved === null ? 'pending' : page.approved ? 'approved' : 'rejected';
   const hasRevisions = page.revisions && page.revisions.length > 0;
@@ -457,7 +472,7 @@ function PageCard({
                 Approve
               </button>
               <button
-                onClick={onReject}
+                onClick={() => setShowRejectForm(true)}
                 className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
               >
                 Reject
@@ -481,6 +496,46 @@ function PageCard({
             </button>
           )}
         </div>
+
+        {/* Rejection feedback form */}
+        {showRejectForm && (
+          <div className="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg space-y-2">
+            <p className="text-xs font-medium text-red-800">
+              Why are you rejecting this? (optional — helps improve future generations)
+            </p>
+            <textarea
+              value={rejectionFeedback}
+              onChange={(e) => setRejectionFeedback(e.target.value)}
+              placeholder="e.g., 'Image contains text/lettering on signs', 'Lines are too thin', 'Too much shading'"
+              className="w-full px-3 py-2 border border-red-300 rounded-lg text-sm resize-none"
+              rows={2}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  setRejecting(true);
+                  await onReject(rejectionFeedback.trim() || undefined);
+                  setRejecting(false);
+                  setShowRejectForm(false);
+                  setRejectionFeedback('');
+                }}
+                disabled={rejecting}
+                className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {rejecting ? 'Rejecting...' : rejectionFeedback.trim() ? 'Reject with Feedback' : 'Reject without Feedback'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowRejectForm(false);
+                  setRejectionFeedback('');
+                }}
+                className="px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Request Revision button */}
         <button
@@ -749,6 +804,98 @@ function PromptIdeasPanel({ apiKey }: { apiKey: string }) {
                 </div>
                 <button
                   onClick={() => handleDelete(idea.id)}
+                  className="ml-3 px-2 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface Guideline {
+  id: string;
+  guideline: string;
+  occurrences: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function GuidelinesPanel({ apiKey }: { apiKey: string }) {
+  const [guidelines, setGuidelines] = useState<Guideline[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchGuidelines = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/guidelines?api_key=${encodeURIComponent(apiKey)}`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setGuidelines(data.guidelines || []);
+    } catch {
+      setError('Failed to load guidelines');
+    } finally {
+      setLoading(false);
+    }
+  }, [apiKey]);
+
+  useEffect(() => {
+    fetchGuidelines();
+  }, [fetchGuidelines]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await fetch(`/api/admin/guidelines?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      setGuidelines(guidelines.filter(g => g.id !== id));
+    } catch {
+      setError('Failed to delete guideline');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">Learned Image Guidelines</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          These guidelines are automatically created from your rejection feedback and appended to every image generation prompt.
+          The system deduplicates similar feedback — the &quot;occurrences&quot; count shows how many times similar feedback was given.
+        </p>
+
+        {error && (
+          <div className="mb-4 text-sm text-red-600">{error}</div>
+        )}
+
+        {loading ? (
+          <div className="animate-pulse text-gray-500">Loading...</div>
+        ) : guidelines.length === 0 ? (
+          <p className="text-gray-500 text-sm">No guidelines yet. Reject images with feedback to build guidelines automatically.</p>
+        ) : (
+          <div className="space-y-3">
+            {guidelines.map((g) => (
+              <div
+                key={g.id}
+                className="flex items-start justify-between p-3 rounded-lg border bg-orange-50 border-orange-200"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-200 text-orange-800">
+                      {g.occurrences}x reported
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700">{g.guideline}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Last updated {new Date(g.updatedAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDelete(g.id)}
                   className="ml-3 px-2 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
                 >
                   Delete

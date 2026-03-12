@@ -53,6 +53,16 @@ model PromptIdea {
     @@index([used])
 }
 
+model ImageGuideline {
+    id          String   @id @default(cuid())
+    guideline   String   // The synthesized guideline text
+    occurrences Int      @default(1) // How many times similar feedback has been given
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([updatedAt])
+}
+
 // Necessary for Next auth
 model Account {
     id                       String  @id @default(cuid())

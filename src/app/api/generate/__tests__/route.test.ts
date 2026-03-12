@@ -12,6 +12,9 @@ vi.mock("~/server/db", () => ({
     promptIdea: {
       findMany: (...args: unknown[]) => mockFindMany(...args),
     },
+    imageGuideline: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 
