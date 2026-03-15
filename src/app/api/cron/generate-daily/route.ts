@@ -3,6 +3,7 @@ import { generateImageWithFlux } from "~/lib/replicate";
 import { buildPromptFromComponents, buildFallbackPrompt } from "~/lib/prompt-templates";
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
+import { getGuidelinesPromptSuffix } from "~/lib/guidelines";
 
 /** Pick one random item from an array */
 function pickOne<T>(arr: T[]): T {
@@ -16,6 +17,9 @@ async function generateDefaultPrompts(count: number): Promise<string[]> {
     select: { id: true, animal: true, action: true, scene: true, props: true, used: true },
   });
 
+  // Fetch learned guidelines to append to each prompt
+  const guidelinesSuffix = await getGuidelinesPromptSuffix();
+
   const prompts: string[] = [];
 
   if (allIdeas.length > 0) {
@@ -26,7 +30,7 @@ async function generateDefaultPrompts(count: number): Promise<string[]> {
         action: pickOne(allIdeas).action,
         scene: pickOne(allIdeas).scene,
         props: pickOne(allIdeas).props,
-      }));
+      }) + guidelinesSuffix);
     }
 
     // Mark all unused ideas as used since their components have been drawn from
@@ -40,7 +44,7 @@ async function generateDefaultPrompts(count: number): Promise<string[]> {
   } else {
     // No ideas in bank, fall back to hardcoded combos
     for (let i = 0; i < count; i++) {
-      prompts.push(buildFallbackPrompt());
+      prompts.push(buildFallbackPrompt() + guidelinesSuffix);
     }
   }
 

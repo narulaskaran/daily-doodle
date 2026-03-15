@@ -115,6 +115,36 @@ export async function PATCH(request: NextRequest) {
       data: { approved: Boolean(approved) },
     });
 
+    // If rejecting with feedback, process it into a guideline
+    if (!approved && body.rejectionFeedback?.trim()) {
+      try {
+        const { processRejectionFeedback } = await import("~/lib/openrouter");
+        const existing = await db.imageGuideline.findMany({
+          select: { id: true, guideline: true, occurrences: true },
+        });
+        const result = await processRejectionFeedback(
+          body.rejectionFeedback as string,
+          existing,
+        );
+        if (result.action === "merge" && result.matchId) {
+          await db.imageGuideline.update({
+            where: { id: result.matchId },
+            data: {
+              guideline: result.guideline,
+              occurrences: { increment: 1 },
+            },
+          });
+        } else {
+          await db.imageGuideline.create({
+            data: { guideline: result.guideline },
+          });
+        }
+      } catch (err) {
+        // Log but don't fail the rejection itself
+        console.error("Failed to process rejection feedback:", err);
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Admin PATCH error:", error);

@@ -3,6 +3,7 @@ import { generateImageWithFlux } from "~/lib/replicate";
 import { buildPromptFromComponents, buildFallbackPrompt } from "~/lib/prompt-templates";
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
+import { getGuidelinesPromptSuffix } from "~/lib/guidelines";
 
 function pickOne<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]!;
@@ -55,7 +56,9 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse request body
     const body: GenerateRequest = await request.json();
-    const prompt = body.prompt ?? (await buildPromptFromIdeasBank());
+    const basePrompt = body.prompt ?? (await buildPromptFromIdeasBank());
+    const guidelinesSuffix = await getGuidelinesPromptSuffix();
+    const prompt = basePrompt + guidelinesSuffix;
 
     // 3. Check Replicate API key
     if (!process.env.REPLICATE_API_TOKEN) {

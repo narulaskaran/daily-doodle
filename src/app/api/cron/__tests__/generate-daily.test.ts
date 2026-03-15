@@ -16,6 +16,9 @@ vi.mock("~/server/db", () => ({
       findMany: (...args: unknown[]) => mockFindMany(...args),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    imageGuideline: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 
