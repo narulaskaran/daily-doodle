@@ -115,16 +115,22 @@ export async function PATCH(request: NextRequest) {
       data: { approved: Boolean(approved) },
     });
 
-    // If rejecting with feedback, process it into a guideline
-    if (!approved && body.rejectionFeedback?.trim()) {
+    // Process feedback into a guideline (rejection or approval)
+    const feedbackText = !approved
+      ? (body.rejectionFeedback as string | undefined)?.trim()
+      : (body.approvalFeedback as string | undefined)?.trim();
+    const feedbackType = approved ? "approval" : "rejection";
+
+    if (feedbackText) {
       try {
-        const { processRejectionFeedback } = await import("~/lib/openrouter");
+        const { processFeedback } = await import("~/lib/openrouter");
         const existing = await db.imageGuideline.findMany({
           select: { id: true, guideline: true, occurrences: true },
         });
-        const result = await processRejectionFeedback(
-          body.rejectionFeedback as string,
+        const result = await processFeedback(
+          feedbackText,
           existing,
+          feedbackType,
         );
         if (result.action === "merge" && result.matchId) {
           await db.imageGuideline.update({
@@ -140,8 +146,8 @@ export async function PATCH(request: NextRequest) {
           });
         }
       } catch (err) {
-        // Log but don't fail the rejection itself
-        console.error("Failed to process rejection feedback:", err);
+        // Log but don't fail the approval/rejection itself
+        console.error(`Failed to process ${feedbackType} feedback:`, err);
       }
     }
 
