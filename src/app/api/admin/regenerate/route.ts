@@ -148,6 +148,34 @@ export async function POST(request: NextRequest) {
 
     const successCount = results.filter((r) => r.success).length;
 
+    // Process revision feedback into a guideline (non-blocking)
+    try {
+      const { processFeedback } = await import("~/lib/openrouter");
+      const existing = await db.imageGuideline.findMany({
+        select: { id: true, guideline: true, occurrences: true },
+      });
+      const result = await processFeedback(
+        reviewComment.trim(),
+        existing,
+        "revision",
+      );
+      if (result.action === "merge" && result.matchId) {
+        await db.imageGuideline.update({
+          where: { id: result.matchId },
+          data: {
+            guideline: result.guideline,
+            occurrences: { increment: 1 },
+          },
+        });
+      } else {
+        await db.imageGuideline.create({
+          data: { guideline: result.guideline },
+        });
+      }
+    } catch (err) {
+      console.error("Failed to process revision feedback into guideline:", err);
+    }
+
     return NextResponse.json({
       pageId,
       reviewComment: reviewComment.trim(),

@@ -93,7 +93,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleApprove = async (id: string, approved: boolean, rejectionFeedback?: string) => {
+  const handleApprove = async (id: string, approved: boolean, rejectionFeedback?: string, approvalFeedback?: string) => {
     try {
       const res = await fetch('/api/admin/pages', {
         method: 'PATCH',
@@ -101,7 +101,7 @@ export default function AdminPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({ id, approved, rejectionFeedback }),
+        body: JSON.stringify({ id, approved, rejectionFeedback, approvalFeedback }),
       });
 
       if (!res.ok) throw new Error('Failed to update');
@@ -109,7 +109,11 @@ export default function AdminPage() {
       setPages(pages.map(p =>
         p.id === id ? { ...p, approved, rejected: !approved } : p
       ));
-      setSuccess(approved ? 'Page approved!' : rejectionFeedback ? 'Page rejected — feedback saved as guideline' : 'Page rejected');
+      if (approved) {
+        setSuccess(approvalFeedback ? 'Page approved — feedback saved as guideline' : 'Page approved!');
+      } else {
+        setSuccess(rejectionFeedback ? 'Page rejected — feedback saved as guideline' : 'Page rejected');
+      }
     } catch {
       setError('Failed to update page');
     }
@@ -332,7 +336,7 @@ export default function AdminPage() {
                         <PageCard
                           key={page.id}
                           page={page}
-                          onApprove={() => handleApprove(page.id, true)}
+                          onApprove={(feedback) => handleApprove(page.id, true, undefined, feedback)}
                           onReject={(feedback) => handleApprove(page.id, false, feedback)}
                           onDelete={() => handleDelete(page.id)}
                           onRegenerate={(comment) => handleRegenerate(page.id, comment)}
@@ -352,7 +356,7 @@ export default function AdminPage() {
                         <PageCard
                           key={page.id}
                           page={page}
-                          onApprove={() => handleApprove(page.id, true)}
+                          onApprove={(feedback) => handleApprove(page.id, true, undefined, feedback)}
                           onReject={(feedback) => handleApprove(page.id, false, feedback)}
                           onDelete={() => handleDelete(page.id)}
                           onRegenerate={(comment) => handleRegenerate(page.id, comment)}
@@ -372,7 +376,7 @@ export default function AdminPage() {
                         <PageCard
                           key={page.id}
                           page={page}
-                          onApprove={() => handleApprove(page.id, true)}
+                          onApprove={(feedback) => handleApprove(page.id, true, undefined, feedback)}
                           onReject={(feedback) => handleApprove(page.id, false, feedback)}
                           onDelete={() => handleDelete(page.id)}
                           onRegenerate={(comment) => handleRegenerate(page.id, comment)}
@@ -400,7 +404,7 @@ function PageCard({
   onChooseRevision,
 }: {
   page: GeneratedPage;
-  onApprove: () => void;
+  onApprove: (feedback?: string) => void;
   onReject: (feedback?: string) => void;
   onDelete: () => void;
   onRegenerate: (comment: string) => void;
@@ -414,6 +418,9 @@ function PageCard({
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectionFeedback, setRejectionFeedback] = useState('');
   const [rejecting, setRejecting] = useState(false);
+  const [showApproveForm, setShowApproveForm] = useState(false);
+  const [approvalFeedback, setApprovalFeedback] = useState('');
+  const [approving, setApproving] = useState(false);
 
   const status = page.approved === null ? 'pending' : page.approved ? 'approved' : 'rejected';
   const hasRevisions = page.revisions && page.revisions.length > 0;
@@ -466,7 +473,7 @@ function PageCard({
           {page.approved === null && (
             <>
               <button
-                onClick={onApprove}
+                onClick={() => setShowApproveForm(true)}
                 className="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
               >
                 Approve
@@ -496,6 +503,46 @@ function PageCard({
             </button>
           )}
         </div>
+
+        {/* Approval feedback form */}
+        {showApproveForm && (
+          <div className="mb-2 p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
+            <p className="text-xs font-medium text-green-800">
+              What makes this image good? (optional — helps reinforce positive qualities)
+            </p>
+            <textarea
+              value={approvalFeedback}
+              onChange={(e) => setApprovalFeedback(e.target.value)}
+              placeholder="e.g., 'Great line thickness', 'Perfect level of detail', 'Nice composition and spacing'"
+              className="w-full px-3 py-2 border border-green-300 rounded-lg text-sm resize-none"
+              rows={2}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  setApproving(true);
+                  await onApprove(approvalFeedback.trim() || undefined);
+                  setApproving(false);
+                  setShowApproveForm(false);
+                  setApprovalFeedback('');
+                }}
+                disabled={approving}
+                className="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                {approving ? 'Approving...' : approvalFeedback.trim() ? 'Approve with Feedback' : 'Approve without Feedback'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowApproveForm(false);
+                  setApprovalFeedback('');
+                }}
+                className="px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Rejection feedback form */}
         {showRejectForm && (
@@ -864,7 +911,7 @@ function GuidelinesPanel({ apiKey }: { apiKey: string }) {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Learned Image Guidelines</h3>
         <p className="text-sm text-gray-500 mb-4">
-          These guidelines are automatically created from your rejection feedback and appended to every image generation prompt.
+          These guidelines are automatically created from your feedback (rejections, revisions, and approvals) and appended to every image generation prompt.
           The system deduplicates similar feedback — the &quot;occurrences&quot; count shows how many times similar feedback was given.
         </p>
 
@@ -875,7 +922,7 @@ function GuidelinesPanel({ apiKey }: { apiKey: string }) {
         {loading ? (
           <div className="animate-pulse text-gray-500">Loading...</div>
         ) : guidelines.length === 0 ? (
-          <p className="text-gray-500 text-sm">No guidelines yet. Reject images with feedback to build guidelines automatically.</p>
+          <p className="text-gray-500 text-sm">No guidelines yet. Provide feedback when reviewing images to build guidelines automatically.</p>
         ) : (
           <div className="space-y-3">
             {guidelines.map((g) => (

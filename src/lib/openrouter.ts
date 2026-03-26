@@ -46,6 +46,8 @@ async function chat(messages: ChatMessage[]): Promise<string> {
   return data.choices[0]?.message.content ?? "";
 }
 
+export type FeedbackType = "rejection" | "revision" | "approval";
+
 export interface GuidelineMatch {
   /** "merge" if the feedback matches an existing guideline, "new" if it's novel */
   action: "merge" | "new";
@@ -55,14 +57,24 @@ export interface GuidelineMatch {
   guideline: string;
 }
 
+const FEEDBACK_CONTEXT: Record<FeedbackType, string> = {
+  rejection: `When an admin rejects a generated image, they provide feedback about what was wrong.
+Your job is to turn that feedback into a concise, actionable guideline for the image generation model to AVOID these issues in the future.`,
+  revision: `When an admin requests revisions to a generated image, they describe what needs to change.
+Your job is to turn that feedback into a concise, actionable guideline for the image generation model to AVOID these issues in future generations.`,
+  approval: `When an admin approves a generated image, they optionally describe what made the image good.
+Your job is to turn that positive feedback into a concise, actionable guideline for the image generation model to REPLICATE these qualities in future generations. Frame the guideline as a positive instruction (e.g., "Ensure lines are thick and bold" rather than "Don't make lines thin").`,
+};
+
 /**
- * Given new rejection feedback and a list of existing guidelines,
- * determine whether this feedback should be merged with an existing
- * guideline or creates a new one. Returns the refined guideline text.
+ * Given feedback (from rejection, revision, or approval) and a list of
+ * existing guidelines, determine whether this feedback should be merged
+ * with an existing guideline or creates a new one.
  */
-export async function processRejectionFeedback(
+export async function processFeedback(
   feedback: string,
   existingGuidelines: { id: string; guideline: string; occurrences: number }[],
+  feedbackType: FeedbackType = "rejection",
 ): Promise<GuidelineMatch> {
   const existingList =
     existingGuidelines.length > 0
@@ -75,11 +87,10 @@ export async function processRejectionFeedback(
     {
       role: "system",
       content: `You help maintain a set of image generation guidelines for a kawaii coloring book app.
-When an admin rejects a generated image, they provide feedback about what was wrong.
-Your job is to turn that feedback into a concise, actionable guideline for the image generation model.
+${FEEDBACK_CONTEXT[feedbackType]}
 
 You will be given:
-1. The admin's rejection feedback
+1. The admin's ${feedbackType} feedback
 2. A list of existing guidelines (may be empty)
 
 You must decide:
@@ -98,7 +109,7 @@ Guidelines should be:
     },
     {
       role: "user",
-      content: `Admin feedback: "${feedback}"
+      content: `Admin ${feedbackType} feedback: "${feedback}"
 
 Existing guidelines:
 ${existingList}`,

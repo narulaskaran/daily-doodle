@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "~/server/db";
-import { processRejectionFeedback } from "~/lib/openrouter";
+import { processFeedback } from "~/lib/openrouter";
 
 function authenticate(request: NextRequest): boolean {
   const expectedAuth = process.env.GENERATE_API_KEY;
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   });
 
   // Use LLM to decide merge vs new
-  const result = await processRejectionFeedback(feedback, existing);
+  const result = await processFeedback(feedback, existing, "rejection");
 
   let guideline;
   if (result.action === "merge" && result.matchId) {
