@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
 import Replicate from "replicate";
 import { acquireReplicateRateLimit } from "~/lib/replicate-ratelimit";
@@ -148,8 +149,8 @@ export async function POST(request: NextRequest) {
 
     const successCount = results.filter((r) => r.success).length;
 
-    // Process revision feedback into a guideline (non-blocking)
-    void (async () => {
+    // Process revision feedback into a guideline (non-blocking, runs after response)
+    after(async () => {
       try {
         const { processFeedback } = await import("~/lib/openrouter");
         const existing = await db.imageGuideline.findMany({
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.error("Failed to process revision feedback into guideline:", err);
       }
-    })();
+    });
 
     return NextResponse.json({
       pageId,
