@@ -14,7 +14,9 @@ const STYLE_SUFFIX =
   "Pure white background, absolutely no shading, no gradients, no grayscale fills, " +
   "no cross-hatching, no stippling, no screentone. Every enclosed area is pure white. " +
   "Flat 2D line art vector style. Dense with cute small details to color in. " +
-  "Kawaii children's coloring book page.";
+  "Kawaii children's coloring book page. " +
+  "ABSOLUTELY NO TEXT, letters, words, numbers, or writing of any kind anywhere in the image — " +
+  "all signs, boards, labels, and banners must be completely blank with no characters on them.";
 
 // ---------------------------------------------------------------------------
 // Composition templates — each produces a structurally different scene
@@ -65,7 +67,7 @@ const TEMPLATES: CompositionTemplate[] = [
       `a ${animal}, a ${animal2}, and a small bird companion — are all ${action} ` +
       `in a bustling cozy ${scene}. ` +
       `The scene is filled edge-to-edge with charming props and details: ${props}, ` +
-      `plus bunting flags, stacked boxes, tiny signs, and decorative items everywhere. ` +
+      `plus bunting flags, stacked boxes, and decorative items everywhere. ` +
       STYLE_SUFFIX,
   },
   // 4. Overhead / bird's-eye view — unique perspective
@@ -86,7 +88,7 @@ const TEMPLATES: CompositionTemplate[] = [
       `Black and white line art coloring page. The front view of a charming little kawaii ${scene} shop or building. ` +
       `A chubby ${animal} is the shopkeeper ${action} inside, ` +
       `while a chubby ${animal2} customer approaches the entrance. ` +
-      `The storefront has an awning, a cute sign, window displays filled with ${props}, ` +
+      `The storefront has an awning, a blank signboard (no text), window displays filled with ${props}, ` +
       `hanging plants, a door mat, and many small decorative details. ` +
       STYLE_SUFFIX,
   },
