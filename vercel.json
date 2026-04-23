@@ -5,12 +5,19 @@
     },
     "app/api/cron/generate-daily/route.ts": {
       "maxDuration": 300
+    },
+    "app/api/cron/nightly-learning/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
     {
       "path": "/api/cron/generate-daily",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/nightly-learning",
+      "schedule": "0 5 * * *"
     }
   ],
   "headers": [
