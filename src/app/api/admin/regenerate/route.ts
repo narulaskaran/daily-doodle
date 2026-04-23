@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
 import Replicate from "replicate";
 import { acquireReplicateRateLimit } from "~/lib/replicate-ratelimit";
-import { getGuidelinesPromptSuffix } from "~/lib/guidelines";
+import { getGuidelinesPrefix } from "~/lib/guidelines";
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
 
@@ -96,10 +96,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build a revised prompt incorporating the review feedback and latest guidelines
+    // Build a revised prompt: guidelines first (highest priority), then base prompt + revision notes
     const basePrompt = page.prompt ?? "Black and white line art coloring page, pure white background. Kawaii, chubby animal in a cozy scene. Thick, bold, uniform black outlines. Flat 2D vector style, strictly no shading, no grayscale, no cross-hatching. Heartwarming, relaxing children's coloring book illustration.";
-    const guidelinesSuffix = await getGuidelinesPromptSuffix();
-    const revisedPrompt = `${basePrompt} Revision notes: ${reviewComment.trim()}${guidelinesSuffix}`;
+    const guidelinesPrefix = await getGuidelinesPrefix();
+    const revisedPrompt = `${guidelinesPrefix}${basePrompt} Revision notes: ${reviewComment.trim()}`;
 
     const results: { attempt: number; success: boolean; id?: string; imageUrl?: string; error?: string }[] = [];
 

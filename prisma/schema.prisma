@@ -18,10 +18,11 @@ model ColoringPage {
     pdfUrl       String            @default("")
     pdfKey       String            @default("")
     thumbnailUrl String?
-    approved     Boolean?
-    createdAt    DateTime          @default(now())
-    updatedAt    DateTime          @updatedAt
-    revisions    ReviewRevision[]
+    approved         Boolean?
+    promptComponents Json?             // {animal, action, scene, props} stored for diversity tracking
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt
+    revisions        ReviewRevision[]
 
     @@index([createdAt])
     @@index([approved])

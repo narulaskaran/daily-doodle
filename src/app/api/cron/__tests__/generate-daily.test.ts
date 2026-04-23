@@ -3,14 +3,15 @@ import { NextRequest } from "next/server";
 
 const mockCount = vi.fn();
 const mockCreate = vi.fn();
-
 const mockFindMany = vi.fn();
+const mockColoringPageFindMany = vi.fn();
 
 vi.mock("~/server/db", () => ({
   db: {
     coloringPage: {
       count: (...args: unknown[]) => mockCount(...args),
       create: (...args: unknown[]) => mockCreate(...args),
+      findMany: (...args: unknown[]) => mockColoringPageFindMany(...args),
     },
     promptIdea: {
       findMany: (...args: unknown[]) => mockFindMany(...args),
@@ -55,10 +56,10 @@ function makeRequest(opts?: { headers?: Record<string, string>; body?: unknown }
 describe("POST /api/cron/generate-daily", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default mock: generateImageWithFlux returns a Buffer
     mockGenerateImage.mockResolvedValue(Buffer.from(new Uint8Array(8)));
-    // Default: no prompt ideas in DB, so fallback to hardcoded combos
     mockFindMany.mockResolvedValue([]);
+    // No recent pages by default (no diversity history)
+    mockColoringPageFindMany.mockResolvedValue([]);
   });
 
   it("returns 401 with invalid cron secret", async () => {
@@ -116,6 +117,51 @@ describe("POST /api/cron/generate-daily", () => {
     expect(createCall.data.approved).toBeNull();
   });
 
+  it("stores promptComponents when generating from ideas bank", async () => {
+    mockCount.mockResolvedValue(0);
+    mockFindMany.mockResolvedValue([
+      { id: "1", animal: "bunny", action: "baking", scene: "kitchen", props: "oven mitts", used: false },
+    ]);
+    mockCreate.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ id: "new-page", ...data, createdAt: new Date() }),
+    );
+
+    const req = makeRequest({
+      headers: { Authorization: "Bearer test-cron-secret" },
+    });
+    await POST(req);
+
+    const createCall = mockCreate.mock.calls[0]![0] as { data: Record<string, unknown> };
+    expect(createCall.data.promptComponents).toBeTruthy();
+    const comp = createCall.data.promptComponents as { animal: string; scene: string };
+    expect(comp.animal).toBe("bunny");
+    expect(comp.scene).toBe("kitchen");
+  });
+
+  it("avoids repeating the same animal in one batch when ideas are available", async () => {
+    mockCount.mockResolvedValue(2); // Generate 2 more today
+    mockFindMany.mockResolvedValue([
+      { id: "1", animal: "bunny", action: "baking", scene: "kitchen", props: "oven mitts", used: false },
+      { id: "2", animal: "fox", action: "reading", scene: "library", props: "books", used: false },
+      { id: "3", animal: "bear", action: "painting", scene: "studio", props: "brushes", used: false },
+    ]);
+    mockCreate.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ id: "new-page", ...data, createdAt: new Date() }),
+    );
+
+    const req = makeRequest({
+      headers: { Authorization: "Bearer test-cron-secret" },
+    });
+    await POST(req);
+
+    // Both created pages should have different animals
+    const animals = mockCreate.mock.calls.map(
+      (call) => (call[0] as { data: { promptComponents?: { animal: string } } }).data.promptComponents?.animal,
+    );
+    // With 3 different animals available, both generated images should use different ones
+    expect(new Set(animals).size).toBe(animals.length);
+  });
+
   it("returns 500 if REPLICATE_API_TOKEN is not set", async () => {
     const origKey = process.env.REPLICATE_API_TOKEN;
     delete process.env.REPLICATE_API_TOKEN;
@@ -136,6 +182,7 @@ describe("GET /api/cron/generate-daily", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGenerateImage.mockResolvedValue(Buffer.from(new Uint8Array(8)));
+    mockColoringPageFindMany.mockResolvedValue([]);
   });
 
   it("returns 401 with invalid cron secret", async () => {
