@@ -5,6 +5,7 @@ const mockCount = vi.fn();
 const mockCreate = vi.fn();
 const mockFindMany = vi.fn();
 const mockColoringPageFindMany = vi.fn();
+const mockAppSettingFindUnique = vi.fn();
 
 vi.mock("~/server/db", () => ({
   db: {
@@ -19,6 +20,9 @@ vi.mock("~/server/db", () => ({
     },
     imageGuideline: {
       findMany: vi.fn().mockResolvedValue([]),
+    },
+    appSetting: {
+      findUnique: (...args: unknown[]) => mockAppSettingFindUnique(...args),
     },
   },
 }));
@@ -60,6 +64,7 @@ describe("POST /api/cron/generate-daily", () => {
     mockFindMany.mockResolvedValue([]);
     // No recent pages by default (no diversity history)
     mockColoringPageFindMany.mockResolvedValue([]);
+    mockAppSettingFindUnique.mockResolvedValue(null);
   });
 
   it("returns 401 with invalid cron secret", async () => {
@@ -162,6 +167,23 @@ describe("POST /api/cron/generate-daily", () => {
     expect(new Set(animals).size).toBe(animals.length);
   });
 
+  it("skips generation when the daily cron is paused", async () => {
+    mockAppSettingFindUnique.mockResolvedValue({ value: "true" });
+
+    const req = makeRequest({
+      headers: { Authorization: "Bearer test-cron-secret" },
+    });
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.generated).toBe(0);
+    expect(data.paused).toBe(true);
+    expect(data.message).toContain("paused");
+    expect(mockCount).not.toHaveBeenCalled();
+    expect(mockGenerateImage).not.toHaveBeenCalled();
+  });
+
   it("returns 500 if REPLICATE_API_TOKEN is not set", async () => {
     const origKey = process.env.REPLICATE_API_TOKEN;
     delete process.env.REPLICATE_API_TOKEN;
@@ -182,7 +204,9 @@ describe("GET /api/cron/generate-daily", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGenerateImage.mockResolvedValue(Buffer.from(new Uint8Array(8)));
+    mockFindMany.mockResolvedValue([]);
     mockColoringPageFindMany.mockResolvedValue([]);
+    mockAppSettingFindUnique.mockResolvedValue(null);
   });
 
   it("returns 401 with invalid cron secret", async () => {
@@ -209,5 +233,21 @@ describe("GET /api/cron/generate-daily", () => {
 
     expect(data.generated).toBeGreaterThanOrEqual(1);
     expect(mockCreate).toHaveBeenCalled();
+  });
+
+  it("skips generation via GET when the daily cron is paused", async () => {
+    mockAppSettingFindUnique.mockResolvedValue({ value: "true" });
+
+    const req = new NextRequest("http://localhost:3000/api/cron/generate-daily", {
+      method: "GET",
+      headers: { Authorization: "Bearer test-cron-secret" },
+    });
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.paused).toBe(true);
+    expect(data.generated).toBe(0);
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });
