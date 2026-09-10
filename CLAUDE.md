@@ -86,6 +86,11 @@ Migrations are fully automated via CI. No manual DB steps are needed on deploy.
 - **Replicate SDK output**: The SDK returns `FileOutput` objects (extends `ReadableStream`, has `.blob()`) — NOT `Blob`. The shared utility handles this. Never call `.arrayBuffer()` directly on Replicate output.
 - **Do NOT** duplicate the Replicate client or image generation logic in route files — always import from `~/lib/replicate`.
 
+## Cron jobs
+
+- **Daily generation**: `/api/cron/generate-daily` (04:00 UTC) can be paused from `/admin` via a toggle at the top of the page. Pause state is stored in the `AppSetting` table (`generate-daily-cron-paused`). When paused, the job returns 200 with `{ paused: true, generated: 0 }` and does not call Replicate. Manual generation via `/api/generate` is unaffected.
+- **Nightly learning**: `/api/cron/nightly-learning` (05:00 UTC) is independent of the daily-generation pause toggle.
+
 ---
 
 ## Agent Guidelines

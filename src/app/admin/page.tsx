@@ -217,7 +217,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Daily Doodle Admin</h1>
             <p className="text-gray-500 mt-1">Manage generated coloring pages</p>
@@ -245,6 +245,15 @@ export default function AdminPage() {
             )}
           </button>
         </div>
+
+        <DailyCronToggle
+          apiKey={apiKey}
+          onError={setError}
+          onSuccess={(msg) => {
+            setError(null);
+            setSuccess(msg);
+          }}
+        />
 
         {/* Messages */}
         {error && (
@@ -391,6 +400,111 @@ export default function AdminPage() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function DailyCronToggle({
+  apiKey,
+  onError,
+  onSuccess,
+}: {
+  apiKey: string;
+  onError: (msg: string) => void;
+  onSuccess: (msg: string) => void;
+}) {
+  const [paused, setPaused] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadStatus() {
+      try {
+        const res = await fetch(`/api/admin/cron?api_key=${encodeURIComponent(apiKey)}`);
+        if (!res.ok) throw new Error("Failed to fetch cron status");
+        const data = (await res.json()) as { paused?: boolean };
+        if (!cancelled) setPaused(Boolean(data.paused));
+      } catch {
+        if (!cancelled) onError("Failed to load cron status");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey, onError]);
+
+  const handleToggle = async () => {
+    const next = !paused;
+    setSaving(true);
+    setPaused(next);
+    try {
+      const res = await fetch("/api/admin/cron", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ paused: next }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      const data = (await res.json()) as { paused?: boolean };
+      setPaused(Boolean(data.paused));
+      onSuccess(data.paused ? "Daily generation cron paused" : "Daily generation cron resumed");
+    } catch {
+      setPaused(!next);
+      onError("Failed to update cron status");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className={`mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-xl border p-4 shadow-sm ${
+        paused ? "bg-amber-50 border-amber-200" : "bg-white border-gray-100"
+      }`}
+    >
+      <div>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-gray-800">Daily generation cron</h2>
+          {!loading && (
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                paused ? "bg-amber-200 text-amber-900" : "bg-green-100 text-green-800"
+              }`}
+            >
+              {paused ? "Paused" : "Active"}
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          When paused, the nightly <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">/api/cron/generate-daily</code> job
+          skips image generation. The Generate New Page button still works.
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={!paused}
+        aria-label={paused ? "Resume daily generation cron" : "Pause daily generation cron"}
+        disabled={loading || saving}
+        onClick={() => void handleToggle()}
+        className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+          paused ? "bg-gray-300" : "bg-green-600"
+        }`}
+      >
+        <span
+          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+            paused ? "translate-x-1" : "translate-x-6"
+          }`}
+        />
+      </button>
     </div>
   );
 }

@@ -64,6 +64,13 @@ model ImageGuideline {
     @@index([updatedAt])
 }
 
+// Key-value settings (e.g. pause flags for cron jobs)
+model AppSetting {
+    key       String   @id
+    value     String
+    updatedAt DateTime @updatedAt
+}
+
 // Necessary for Next auth
 model Account {
     id                       String  @id @default(cuid())

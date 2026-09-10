@@ -4,6 +4,7 @@ import { buildPromptFromComponents, buildFallbackPrompt } from "~/lib/prompt-tem
 import { uploadImage } from "~/lib/uploadthing";
 import { db } from "~/server/db";
 import { getGuidelinesPrefix } from "~/lib/guidelines";
+import { isGenerateDailyCronPaused } from "~/lib/cron-settings";
 
 interface PromptComponents {
   animal: string;
@@ -128,6 +129,14 @@ function slugify(text: string): string {
 
 async function handleGeneration(request: NextRequest) {
   try {
+    if (await isGenerateDailyCronPaused()) {
+      return NextResponse.json({
+        message: "Daily generation cron is paused",
+        generated: 0,
+        paused: true,
+      });
+    }
+
     const today = new Date().toISOString().split("T")[0]!;
 
     const startOfDay = new Date(`${today}T00:00:00.000Z`);
